@@ -333,7 +333,7 @@ function viewPlan(w){
 }
 function viewAbout(w){
   w.append(h('h2',{class:'sec'},'このアプリについて'),h('div',{class:'card about'},
-    h('p',{style:'margin:0 0 8px;line-height:1.6'},'ImSAFER 分析支援 v1.0（○○病院 作成）。ImSAFER（事故の構造に基づく事象分析手法）の手順1〜7を、パソコンで進めるために作った支援ツールです。この画面は、できあがった分析を見るための閲覧用（スマホ対応）です。'),
+    h('p',{style:'margin:0 0 8px;line-height:1.6'},'ImSAFER 分析支援 v1.0。ImSAFER（事故の構造に基づく事象分析手法）の手順1〜7を、パソコンで進めるために作った支援ツールです。この画面は、できあがった分析を見るための閲覧用（スマホ対応）です。'),
     h('ul',{style:'margin:0;padding-left:1.2em'},
       h('li',{},'① 時系列事象関連図：付箋を置いて出来事を整理。Excel の入力シートからの取り込み、時刻順の並べ替え、会議で1枚ずつ確認する「確認モード」'),
       h('li',{},'② 問題点の抽出：× の番号付けと最終事象 ★'),
@@ -341,7 +341,7 @@ function viewAbout(w){
       h('li',{},'④〜⑦：GUIDE 11段階と 4STEP/M で対策を考え、採否・担当・期限・評価まで記録'),
       h('li',{},'QuickSAFER（部署向けの短時間版）、印刷／PDF、Excel 書き出し'))));
   w.append(h('div',{class:'banner'},'編集はパソコン版で行います。このビューアは閲覧専用です（データを書き換えません）。'));
-  w.append(h('div',{class:'card'},h('b',{},'問い合わせ'),h('div',{class:'note',style:'margin-top:4px'},'○○病院 医療安全管理室（○○）　電話 ○○　メール ○○')));
+  w.append(h('div',{class:'card'},h('b',{},'この道具について'),h('div',{class:'note',style:'margin-top:4px'},'有志が作成した非公式の支援ツールです。ImSAFER® は登録商標であり、ImSAFER研究会・河野龍太郎先生の公式ツールではありません。')));
 }
 
 /* ========== 読み込み ========== */

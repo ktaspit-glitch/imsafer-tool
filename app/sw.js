@@ -1,5 +1,5 @@
 // オフラインでも動かすための仕組み。アプリを更新するとこの番号が変わり、古いものと入れ替わる。
-const CACHE='imsafer-20261019210640';
+const CACHE='imsafer-20261019211150';
 const CORE=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
