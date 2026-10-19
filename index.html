@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ImSAFER 分析支援</title>
+<meta name="description" content="ImSAFER の手順で医療事故・インシデントの事例分析を行う無料のツール。インストール不要、オフラインで動作します。">
+<meta name="theme-color" content="#1e293b">
+<link rel="icon" href="app/icon-192.png">
+<style>
+:root{--bg:#eef1f5;--surface:#fff;--fg:#1f2937;--muted:#6b7280;--line:#d3d9e0;--accent:#1976d2;--head:#1e293b}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Yu Gothic UI","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;background:var(--bg);color:var(--fg);line-height:1.75}
+.wrap{max-width:860px;margin:0 auto;padding:28px 16px 56px}
+h1{font-size:26px;margin:0 0 6px;color:var(--head)}
+.lead{margin:0 0 22px;color:var(--muted)}
+.apps{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.app{display:block;background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:16px 18px;color:inherit;text-decoration:none}
+.app:hover{border-color:var(--accent)}
+.app .ic{font-size:34px;line-height:1}
+.app h2{font-size:19px;margin:8px 0 4px;color:var(--accent)}
+.app p{margin:0;font-size:15px}
+.app .go{display:inline-block;margin-top:10px;background:var(--accent);color:#fff;border-radius:9px;padding:5px 13px;font-size:15px}
+h3{font-size:17px;margin:28px 0 6px;color:var(--head);border-left:4px solid var(--accent);padding-left:8px}
+ul{margin:0;padding-left:20px}
+li{margin:3px 0}
+.note{font-size:14px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--surface)}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{background:#f1f5f9;white-space:nowrap}
+footer{margin-top:32px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ImSAFER 分析支援</h1>
+  <p class="lead">医療事故・インシデントの事例分析（ImSAFER の手順1〜7）を、紙の付箋と模造紙のかわりに画面で行うための道具です。<br>
+    無料・登録不要。インターネットにつながずに動き、入力した内容はお使いの端末の中だけに保存されます。</p>
+
+  <div class="apps">
+    <a class="app" href="app/">
+      <div class="ic">📝</div>
+      <h2>分析アプリ</h2>
+      <p>時系列事象関連図 → 問題点 → 背後要因関連図 → 対策（GUIDE 11段階）まで。QuickSAFER にも対応。練習事例が入っているので、すぐ試せます。</p>
+      <span class="go">ひらく ▶</span>
+    </a>
+    <a class="app" href="viewer/">
+      <div class="ic">👀</div>
+      <h2>ビューア（見るだけ）</h2>
+      <p>できあがった分析を見るための閲覧専用。編集できないので、人に端末を渡して見てもらうときに。</p>
+      <span class="go">ひらく ▶</span>
+    </a>
+  </div>
+
+  <h3>できること</h3>
+  <table>
+    <tr><th>① 時系列事象関連図</th><td>登場人物ごとに出来事を並べる。一覧入力・時刻順の並べ替え・Excel 入力シートからの取り込み・会議で1枚ずつ確かめる「確認モード」</td></tr>
+    <tr><th>② 問題点の抽出</th><td>× の番号付け、最終事象に ★</td></tr>
+    <tr><th>③ 背後要因の探索</th><td>要因を足すと図が自動で並ぶ。行動の下に「〇〇が正しいと判断した」を自動で挟む。P-mSHELL の分類、「院内で対策できる」の目印</td></tr>
+    <tr><th>④〜⑦ 対策・実施・評価</th><td>GUIDE 11段階を選ぶと 4STEP/M（発生防止／拡大防止）を自動表示。注意喚起だけに偏ると注意表示。担当・期限・評価まで</td></tr>
+    <tr><th>QuickSAFER</th><td>部署で短時間に行う分析を1画面で（P-E情報整理表つき）</td></tr>
+    <tr><th>出力</th><td>印刷／PDF（委員会用サマリー、図の分割印刷）、Excel 書き出し ※パソコン向け</td></tr>
+  </table>
+
+  <h3>スマホで使うとき</h3>
+  <ul>
+    <li>「分析アプリ」を開き、ブラウザのメニューから<strong>「ホーム画面に追加」</strong>すると、アプリのように起動できます（一度開けば、電波がなくても使えます）。</li>
+    <li>画面が狭いときは、①の入力は自動で「一覧入力」になります。背後要因の図は指で動かす・つまんで拡大できます。</li>
+    <li>じっくり分析したり、印刷・Excel 書き出しをするときはパソコンの方が快適です。</li>
+  </ul>
+
+  <h3>安全のために</h3>
+  <ul>
+    <li>入力した内容が外部へ送られることはありません（通信しません）。保存先はお使いの端末の中だけです。</li>
+    <li>患者氏名・患者ID・病室番号は入力しない運用にしてください。登場人物は「患者A」「看護師A」のように表記します。</li>
+    <li>共用の端末で使ったときは、分析が終わったらファイルを保存し、ブラウザの履歴・サイトデータを消してください。</li>
+  </ul>
+
+  <h3>この道具について</h3>
+  <ul>
+    <li>ImSAFER® は登録商標です。本アプリは有志が作成した非公式の支援ツールであり、ImSAFER 研究会・河野龍太郎先生の公式ツールではありません。手法そのものは研修の受講をおすすめします。</li>
+    <li>医学的・運用上の判断は各医療機関の責任で行ってください。本アプリの利用により生じた結果について作成者は責任を負いません。</li>
+  </ul>
+
+  <footer>ImSAFER 分析支援 v1.0　／　お問い合わせ：○○</footer>
+</div>
+</body>
+</html>

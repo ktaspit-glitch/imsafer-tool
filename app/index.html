@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ImSAFER 分析支援 v1.0</title>
+<meta name="theme-color" content="#1e293b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ImSAFER">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--fs:14px;--bg:#eef1f5;--panel:#fff;--line:#d3d9e0;--text:#1f2937;--muted:#6b7280;--accent:#1976d2;--danger:#d32f2f;--warn:#f9a825;--ok:#2e7d32;--sticky:#fff8c5}
+body.big{--fs:17px}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:"Yu Gothic UI","Meiryo UI",Meiryo,"Hiragino Sans",system-ui,sans-serif;font-size:var(--fs);color:var(--text);background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:6px;padding:4px 10px;color:var(--text)}
+button:hover{background:#f3f6fa}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.primary:hover{background:#125ea8}
+button.danger{color:var(--danger);border-color:#f3b4b4}
+button.mini{padding:1px 6px;font-size:.8em;border-radius:4px}
+button.icon{border:none;background:transparent;font-size:1.1em;padding:2px 6px}
+input,select,textarea{font:inherit;color:inherit;border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:#fff}
+input:focus,select:focus,textarea:focus{outline:2px solid #90caf9;outline-offset:0}
+textarea{resize:vertical}
+.full{width:100%}
+header{display:flex;align-items:center;gap:8px;padding:6px 12px;background:#1e293b;color:#fff;flex-wrap:wrap}
+header h1{font-size:1.05em;margin:0 12px 0 0;font-weight:600}
+header .file{font-size:.9em;opacity:.9;margin-right:auto}
+header .file .dirty{color:#ffd54f;margin-left:6px}
+header button{background:#334155;color:#fff;border-color:#475569}
+header button:hover{background:#475569}
+header button.active{background:#0ea5e9;border-color:#0ea5e9}
+nav{display:flex;gap:4px;padding:6px 12px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap}
+nav button{border-radius:20px;padding:5px 14px}
+nav button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+nav .mode{margin-left:auto;align-self:center;color:var(--muted);font-size:.9em}
+#main{flex:1;min-height:0;display:flex;overflow:hidden}
+.toolbar{display:flex;gap:6px;align-items:center;padding:6px 10px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.toolbar .hint{color:var(--muted);font-size:.88em;margin-left:auto}
+.toolbar .sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+.view{flex:1;min-width:0;display:flex;flex-direction:column}
+.scroll{flex:1;overflow:auto;padding:12px}
+aside.side{width:300px;flex:none;background:#fff;border-left:1px solid var(--line);overflow:auto;padding:10px;display:flex;flex-direction:column;gap:12px}
+aside.side h3{margin:0 0 6px;font-size:.95em;color:#334155;border-bottom:2px solid #e2e8f0;padding-bottom:4px}
+.rules{background:#fff7e6;border:1px solid #ffe0a3;border-radius:8px;padding:8px 10px;font-size:.88em}
+.rules li{margin:3px 0}
+.note{color:var(--muted);font-size:.88em}
+/* basic form */
+.form-wrap{max-width:760px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px 24px}
+.form-wrap h2{margin:0 0 12px;font-size:1.15em}
+.field{display:grid;grid-template-columns:170px 1fr;gap:8px;align-items:center;margin:8px 0}
+.field label{color:#334155}
+.warnbox{background:#fdecea;border:1px solid #f5c2c0;color:#8a1c1c;border-radius:8px;padding:8px 10px;margin:12px 0;font-size:.92em}
+.okbox{background:#e8f5e9;border:1px solid #bfe3c2;color:#1b5e20;border-radius:8px;padding:8px 10px;font-size:.92em}
+/* timeline */
+.tl-zoom{display:inline-block}
+table.tl{border-collapse:separate;border-spacing:0;table-layout:fixed;background:#fff}
+table.tl th,table.tl td{border:1px solid var(--line);vertical-align:top;padding:0}
+table.tl th{background:#f1f5f9;position:sticky;top:0;z-index:2;padding:6px 6px;text-align:left;font-weight:600}
+table.tl th.timecol,table.tl td.timecol{position:sticky;left:0;z-index:1;background:#f8fafc}
+table.tl th.timecol{z-index:3}
+table.tl th .pname{display:flex;align-items:center;gap:4px}
+table.tl th .pname span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table.tl th .ptools{display:none;gap:2px}
+table.tl th:hover .ptools{display:flex}
+table.tl th .rs{position:absolute;right:-3px;top:0;bottom:0;width:6px;cursor:col-resize}
+table.tl th{position:sticky}
+table.tl td.cell{min-height:44px;cursor:cell}
+table.tl td.cell .cell-inner{min-height:44px;padding:5px;display:flex;flex-direction:column;gap:5px}
+table.tl td.cell.over{background:#e3f2fd}
+table.tl td.timecol .time{width:100%;padding:3px 6px;border:1px solid transparent;background:transparent}
+table.tl td.timecol .time:hover,table.tl td.timecol .time:focus{border-color:var(--line);background:#fff}
+table.tl td.timecol .rtools{display:flex;gap:2px;padding:0 4px 4px;opacity:.25}
+table.tl td.timecol:hover .rtools{opacity:1}
+table.tl td.addrow{background:#fff;padding:6px}
+.card{position:relative;background:var(--sticky);border:1px solid #e0c96b;border-left:4px solid #e0c96b;border-radius:5px;padding:4px 6px 3px;box-shadow:1px 1px 2px rgba(0,0,0,.08);cursor:grab}
+.card.dragging{opacity:.4}
+.card.prob{border-color:#e57373;border-left-color:#d32f2f}
+.card.final{outline:3px solid #d32f2f;outline-offset:-1px}
+.card.cert-推測{border-style:dashed}
+.card.cert-不明{border-style:dotted;background:#f1f5f9}
+.card.src-報告書{background:#fff3cd}
+.card .marks{min-height:14px;display:flex;gap:4px;font-weight:700;font-size:.9em}
+.card .marks .x{color:var(--danger)}
+.card .marks .star{color:#c62828}
+.card .marks .whint{color:#b45309;background:#fff3cd;border-radius:8px;padding:0 5px;font-size:.8em;cursor:help;margin-left:auto}
+.card .ctools{position:absolute;right:3px;top:2px;display:none;gap:2px}
+.card:hover .ctools{display:flex}
+.card .ctext{white-space:pre-wrap;word-break:break-all;cursor:text;min-height:1.4em;line-height:1.4}
+.card .ctext.empty{color:#9ca3af}
+.card textarea.card-edit{width:100%;border:1px solid var(--accent);border-radius:4px;padding:3px 5px;resize:none;line-height:1.4;font-size:1em}
+.card .ctags{display:flex;gap:4px;margin-top:2px}
+.card .ctags button{font-size:.72em;padding:0 5px;border-radius:9px;color:var(--muted);background:#fff}
+.card .ctags button.on{color:#fff;background:#6b7280;border-color:#6b7280}
+.card .ctags button.on.src{background:#b8860b;border-color:#b8860b}
+.plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.plist li{border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:#fff;display:flex;gap:6px;align-items:flex-start}
+.plist li.final{border-color:#d32f2f;background:#fff5f5}
+.plist li.used{opacity:.55}
+.plist li .no{color:var(--danger);font-weight:700;white-space:nowrap}
+.plist li .body{flex:1;min-width:0}
+.plist li .meta{color:var(--muted);font-size:.8em}
+.plist li[draggable=true]{cursor:grab}
+/* tree */
+.tree-area{flex:1;position:relative;overflow:hidden;background:#fafbfc;background-image:radial-gradient(#dfe5ec 1px,transparent 1px);background-size:20px 20px}
+.tree-area svg{width:100%;height:100%;display:block;user-select:none}
+.tree-area svg g.node{cursor:pointer}
+.tree-area svg g.node.drop rect{stroke:#ff9800!important;stroke-width:4!important}
+#treeOverlay{position:absolute;inset:0;pointer-events:none}
+#treeOverlay>*{pointer-events:auto}
+.ntool{position:absolute;display:flex;gap:4px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px;box-shadow:0 2px 8px rgba(0,0,0,.15);max-width:520px;font-size:.9em}
+.ntool select{padding:2px 4px}
+.ntool label{display:flex;align-items:center;gap:3px;white-space:nowrap}
+#nodeEdit{position:absolute;border:2px solid var(--accent);border-radius:6px;padding:4px 6px;resize:none;line-height:1.5;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{border-radius:12px;padding:2px 9px;font-size:.85em;color:#fff;font-weight:600}
+.chip.unused{background:#fff!important;color:#9ca3af;border:1px dashed #cbd5e1;font-weight:400}
+.banner{background:#fff3cd;border-bottom:1px solid #ffe08a;padding:6px 10px;display:flex;gap:10px;align-items:center}
+.empty{margin:auto;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:12px;align-items:center}
+/* modal */
+.modal-back{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:#fff;border-radius:12px;min-width:360px;max-width:min(92vw,720px);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
+.modal-head h3{margin:0;font-size:1.05em}
+.modal-body{padding:14px 16px;overflow:auto}
+.modal-body p{margin:6px 0}
+.modal-foot{display:flex;gap:8px;justify-content:flex-end;padding:10px 16px;border-top:1px solid var(--line)}
+.start-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.start-grid.g3{grid-template-columns:1fr 1fr 1fr}
+.start-grid button{padding:14px;font-size:1.05em}
+.recent{list-style:none;padding:0;margin:8px 0 0}
+.recent li{padding:6px 8px;border:1px solid var(--line);border-radius:6px;margin:4px 0;cursor:pointer}
+.recent li:hover{background:#f3f6fa}
+kbd{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:4px;padding:0 5px;font-family:inherit;font-size:.9em}
+/* output */
+.out-form{max-width:640px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px 24px}
+.out-form .row{display:flex;gap:14px;align-items:center;margin:10px 0;flex-wrap:wrap}
+.out-form fieldset{border:1px solid var(--line);border-radius:8px;margin:10px 0}
+/* steps 4-7 */
+.fg{background:#fff;border:1px solid var(--line);border-radius:8px;margin:0 0 10px;overflow:hidden}
+.fg-head{display:flex;gap:8px;align-items:center;padding:8px 10px;background:#f8fafc;border-bottom:1px solid var(--line)}
+.fg-head .fg-text{flex:1;font-weight:600}
+.badge{font-size:.78em;border-radius:10px;padding:1px 8px;white-space:nowrap}
+.badge.ok{background:#e8f5e9;color:#1b5e20}
+.badge.warn{background:#fff3cd;color:#7a5200}
+.mrow{display:grid;grid-template-columns:1fr 210px 150px 34px;gap:8px;align-items:start;padding:6px 10px;border-top:1px dashed #e5e7eb}
+.mrow .steplab{font-size:.85em;color:var(--muted);padding-top:6px}
+.mrow .mhint{grid-column:1/-1;font-size:.82em;color:#7a5200;background:#fff8e1;border-radius:6px;padding:3px 8px}
+table.dt{border-collapse:collapse;background:#fff;width:100%;font-size:.95em}
+table.dt th,table.dt td{border:1px solid var(--line);padding:4px 6px;vertical-align:top}
+table.dt th{background:#f1f5f9;font-weight:600;white-space:nowrap;position:sticky;top:0}
+table.dt td input,table.dt td select,table.dt td textarea{width:100%;padding:3px 6px}
+table.dt td.ro{background:#fafafa}
+table.dt tr.dec-採用 td:first-child{border-left:4px solid #2e7d32}
+table.dt tr.dec-不採用 td{color:#9ca3af}
+.guide-tbl{width:100%;border-collapse:collapse;font-size:.82em}
+.guide-tbl td{padding:3px 4px;border-bottom:1px solid #eef2f7;vertical-align:top}
+.guide-tbl td.no{font-weight:700;color:var(--accent);white-space:nowrap}
+.dist{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;font-size:.85em}
+.dist div{background:#f1f5f9;border-radius:6px;padding:4px}
+.dist b{display:block;font-size:1.3em}
+/* quick */
+.qsec{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:0 auto 14px;max-width:1100px}
+.qsec h2{margin:0 0 10px;font-size:1.05em;display:flex;align-items:center;gap:10px}
+.qsec h2 .qn{background:var(--accent);color:#fff;border-radius:14px;padding:1px 10px;font-size:.85em}
+.qgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 16px}
+.qgrid label{display:flex;flex-direction:column;gap:3px;font-size:.9em;color:#334155}
+.pe{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pe h4{margin:0 0 6px}
+.pe-item{display:grid;grid-template-columns:auto 1fr auto auto;gap:6px;align-items:center;margin:4px 0}
+.pe-item input.t{width:74px}
+.pe-item .unseen{font-size:.8em;white-space:nowrap}
+.qtree{display:grid;grid-template-columns:1fr 280px;gap:10px}
+.qtree .tree-area{height:440px;border:1px solid var(--line);border-radius:8px}
+.qtree aside{border:1px solid var(--line);border-radius:8px;padding:8px;overflow:auto;max-height:440px;display:flex;flex-direction:column;gap:10px}
+.evrow{display:grid;grid-template-columns:90px 160px 1fr auto;gap:6px;align-items:center;margin:4px 0}
+/* list editor */
+table.lt{border-collapse:collapse;background:#fff;font-size:.95em}
+table.lt th,table.lt td{border:1px solid var(--line);padding:3px 5px;vertical-align:top}
+table.lt th{background:#f1f5f9;position:sticky;top:0;z-index:1;white-space:nowrap;font-weight:600}
+table.lt td.no{text-align:center;color:var(--muted);background:#fafafa;white-space:nowrap}
+table.lt td input,table.lt td select,table.lt td textarea{padding:3px 6px}
+table.lt td textarea{width:100%;min-height:30px;resize:none;line-height:1.4}
+table.lt td .tcell{display:flex;gap:3px;align-items:center}
+table.lt td .tcell input{width:110px}
+table.lt td .ops{display:flex;gap:2px;white-space:nowrap}
+table.lt tr.shared td.tm{background:#f8fafc}
+table.lt button.tog{min-width:30px}
+table.lt button.tog.on{background:#fde2e2;border-color:#e57373;color:#c62828;font-weight:700}
+table.lt button.tog.star.on{background:#fff3cd;border-color:#f2b705;color:#8a5a00}
+table.lt button.tog.chk.on{background:#e8f5e9;border-color:#81c784;color:#1b5e20}
+/* confirm mode */
+body.confirm .card.src-報告書:not(.checked),body.confirm .card.src-ヒアリング:not(.checked){outline:2px dashed #f2b705;outline-offset:-1px}
+body.confirm .card.checked{border-left-color:#2e7d32}
+body.confirm .card .cchk{display:inline-flex!important}
+.card .cchk{display:none;position:absolute;right:3px;bottom:3px;gap:2px}
+.card .marks .ok{color:#2e7d32;font-weight:700}
+.card .marks .flag{color:#fff;background:#e65100;border-radius:8px;padding:0 6px;font-size:.78em;font-weight:600}
+.card.cur{box-shadow:0 0 0 3px #1976d2}
+.cprog{background:#e8f5e9;border:1px solid #bfe3c2;border-radius:8px;padding:8px 10px}
+.cprog .bar{height:8px;background:#fff;border-radius:4px;overflow:hidden;margin-top:6px;border:1px solid #cde}
+.cprog .bar div{height:100%;background:#43a047}
+.clist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:40vh;overflow:auto}
+.clist li{border:1px solid var(--line);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.9em}
+.clist li:hover{background:#f3f6fa}
+.clist li.cur{border-color:#1976d2;background:#e3f2fd}
+.clist li .m{color:var(--muted);font-size:.85em}
+
+/* ================= スマホ用 ================= */
+html{-webkit-text-size-adjust:100%}
+@media (max-width:760px){
+  :root{--fs:15px}
+  body.big{--fs:17px}
+  button{padding:7px 11px;border-radius:8px}
+  button.mini{padding:4px 8px}
+  header{padding:6px 8px;padding-top:max(6px,env(safe-area-inset-top));gap:5px}
+  header h1{font-size:.95em;margin:0 4px 0 0;width:100%}
+  header h1 small{display:none}
+  header .file{font-size:.8em;order:9;width:100%;margin:0}
+  header button{padding:6px 9px;font-size:.88em}
+  nav{padding:5px 8px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  nav button{white-space:nowrap;padding:6px 12px}
+  nav .mode{display:none}
+  #main{flex-direction:column;overflow:auto;-webkit-overflow-scrolling:touch}
+  .view{flex:none;min-height:0}
+  .scroll{overflow:visible;padding:8px}
+  aside.side{width:auto;border-left:none;border-top:3px solid var(--line);max-height:none}
+  .toolbar{padding:6px 8px;gap:5px}
+  .toolbar .hint{width:100%;margin:2px 0 0;font-size:.82em}
+  .toolbar .sep{display:none}
+  /* 一覧入力：1行＝1カード */
+  table.lt{display:block;width:100%;font-size:1em}
+  table.lt thead{display:none}
+  table.lt tbody{display:block}
+  table.lt tr{display:grid;grid-template-columns:repeat(6,1fr);gap:6px 8px;align-items:end;border:1px solid var(--line);border-left:5px solid var(--accent);border-radius:10px;padding:9px;margin:0 0 10px;background:#fff}
+  table.lt tr.emptyrow{border-left-color:var(--line)}
+  table.lt tr.emptyrow td{grid-column:1/-1!important}
+  table.lt td{display:block;border:none;padding:0}
+  table.lt td.no{grid-column:1/2;background:transparent;font-weight:700;color:var(--accent);text-align:left}
+  table.lt td.tm{grid-column:2/-1}
+  table.lt td:nth-child(3){grid-column:1/-1}
+  table.lt td:nth-child(4){grid-column:1/-1}
+  table.lt td:nth-child(5){grid-column:1/4}
+  table.lt td:nth-child(6){grid-column:4/-1}
+  table.lt td:nth-child(7){grid-column:1/3}
+  table.lt td:nth-child(8){grid-column:3/5}
+  table.lt td:nth-child(9){grid-column:5/-1}
+  table.lt td:nth-child(10){grid-column:1/-1}
+  table.lt td[data-label]:nth-child(n+5)::before{content:attr(data-label);display:block;font-size:.72em;color:var(--muted);line-height:1.3}
+  table.lt td .tcell input{width:100%}
+  table.lt td select,table.lt td textarea,table.lt td input{width:100%}
+  table.lt td:nth-child(4) textarea{min-height:58px;font-size:1.02em}
+  table.lt td:nth-child(n+7):nth-child(-n+9) button{width:100%}
+  table.lt td .ops{justify-content:flex-end}
+  /* 対策などの表は横スクロール */
+  table.dt{min-width:660px}
+  .scroll>table.dt{display:block;overflow-x:auto}
+  /* 背後要因の図 */
+  .tree-area{min-height:58vh;touch-action:none}
+  .ntool{max-width:94vw;font-size:.95em}
+  .ntool select{max-width:38vw}
+  /* 時系列の図（表）はピンチせずスクロール */
+  .tl-zoom{touch-action:pan-x pan-y}
+  .modal{width:94vw;max-width:94vw}
+  .start-grid{grid-template-columns:1fr}
+  .form-wrap,.out-form{padding:12px}
+  .field{grid-template-columns:1fr;gap:3px}
+  .qtree{grid-template-columns:1fr}
+  .qtree .tree-area{height:52vh}
+  .qtree aside{max-height:none}
+  .pe{grid-template-columns:1fr}
+  .mrow{grid-template-columns:1fr;gap:5px}
+  .mrow .steplab{padding-top:0}
+  .plist li{flex-wrap:wrap}
+  .phone-only{display:inline-flex}
+}
+@media (min-width:761px){.phone-only{display:none}}
+/* print */
+#printRoot{display:none}
+@media print{
+  body>*:not(#printRoot){display:none!important}
+  body{display:block;height:auto;overflow:visible;background:#fff}
+  #printRoot{display:block}
+  .page{page-break-after:always;break-after:page}
+  .page:last-child{page-break-after:auto;break-after:auto}
+  .page-report{page:report}
+  .page-diagram{page:diagram}
+  .ptitle{font-size:10pt;color:#333;margin:0 0 2mm}
+  .rep h1{font-size:15pt;margin:0 0 4mm}
+  .rep h2{font-size:12pt;margin:5mm 0 2mm;border-left:4px solid #1976d2;padding-left:2mm}
+  .rep table{border-collapse:collapse;width:100%;font-size:9.5pt}
+  .rep th,.rep td{border:1px solid #888;padding:1.2mm 2mm;text-align:left;vertical-align:top}
+  .rep th{background:#eee}
+}
+</style>
+<style id="printStyle"></style>
+</head>
+<body>
+<header>
+  <h1>ImSAFER 分析支援 <small style="font-weight:400;opacity:.8">v1.0</small></h1>
+  <span class="file"><span id="fileName">新しい事例</span><span id="dirty" class="dirty" hidden>● 未保存</span></span>
+  <button id="btnNew">新規</button>
+  <button id="btnOpen">開く</button>
+  <button id="btnSave" title="Ctrl+S">保存</button>
+  <button id="btnSaveAs">名前を付けて保存</button>
+  <button id="btnUndo" title="Ctrl+Z">↶ 元に戻す</button>
+  <button id="btnRedo" title="Ctrl+Y">↷ やり直す</button>
+  <button id="btnBig" title="プロジェクター向けに文字を大きくします">大きな文字</button>
+  <button id="btnHelp">使い方</button>
+</header>
+<nav id="nav"></nav>
+<div id="main"></div>
+<div id="printRoot"></div>
+<script>
+'use strict';
+/* ========== utils ========== */
+const APP_ID='ImSAFER分析アプリ';
+const DRAFT_KEY='imsafer.draft.v1';
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+function uid(){return Date.now().toString(36).slice(-5)+Math.random().toString(36).slice(2,8);}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function h(tag,props,...kids){
+  const e=document.createElement(tag);
+  for(const [k,v] of Object.entries(props||{})){
+    if(v==null||v===false)continue;
+    if(k==='class')e.className=v;
+    else if(k==='style')e.style.cssText=v;
+    else if(k==='dataset')Object.assign(e.dataset,v);
+    else if(k.startsWith('on'))e.addEventListener(k.slice(2).toLowerCase(),v);
+    else if(k==='html')e.innerHTML=v;
+    else if(k in e){try{e[k]=v;}catch{e.setAttribute(k,v);}}
+    else e.setAttribute(k,v);
+  }
+  for(const c of kids.flat(Infinity)){if(c==null||c===false)continue;e.append(c.nodeType?c:document.createTextNode(String(c)));}
+  return e;
+}
+const SVGNS='http://www.w3.org/2000/svg';
+function svgEl(tag,attrs={},...kids){const e=document.createElementNS(SVGNS,tag);for(const [k,v] of Object.entries(attrs)){if(v==null)continue;e.setAttribute(k,v);}for(const c of kids.flat(Infinity)){if(c==null)continue;e.append(typeof c==='string'?document.createTextNode(c):c);}return e;}
+function btn(label,onClick,props={}){const b=h('button',{type:'button',...props},label);b.addEventListener('mousedown',e=>e.preventDefault());b.addEventListener('click',e=>{flushEdits();onClick(e);});return b;}
+function markDirty(){ui.dirty=true;S.updatedAt=new Date().toISOString();scheduleDraft();const d=$('#dirty');if(d)d.hidden=false;}
+function flushField(){if(ui.fieldSnap){if(ui.fieldSnap!==snapshot())pushHistory(ui.fieldSnap);ui.fieldSnap=null;}}
+function bindText(el,setter,onCommit){el.addEventListener('focus',()=>{if(!ui.fieldSnap)ui.fieldSnap=snapshot();});el.addEventListener('input',()=>{setter(el.value);markDirty();});el.addEventListener('change',()=>{flushField();renderShell();onCommit&&onCommit(el.value);});return el;}
+function txt(get,set,props={},onCommit){const el=h('input',{type:'text',class:'full',value:get()||'',...props});return bindText(el,set,onCommit);}
+function ta(get,set,props={},onCommit){const el=h('textarea',{class:'full',rows:1,value:get()||'',...props});bindText(el,set,onCommit);el.addEventListener('input',autoGrow);el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();el.blur();}});requestAnimationFrame(()=>autoGrow({target:el}));return el;}
+function sel(get,set,options,props={}){const el=h('select',{...props},...options.map(o=>{const [v,l]=Array.isArray(o)?o:[o,o||'－'];return h('option',{value:v},l);}));el.value=get()??'';el.addEventListener('change',()=>mutate(()=>set(el.value)));return el;}
+const FONT_FAMILY='"Yu Gothic UI","Meiryo UI",Meiryo,"Hiragino Sans",sans-serif';
+const _mc=document.createElement('canvas').getContext('2d');
+function wrapText(text,maxW,font){_mc.font=font;const lines=[];for(const para of String(text??'').split('\n')){let line='';for(const ch of para){const t=line+ch;if(_mc.measureText(t).width>maxW&&line){lines.push(line);line=ch;}else line=t;}lines.push(line);}return lines.length?lines:[''];}
+function b64(u8){let s='';for(const b of u8)s+=String.fromCharCode(b);return btoa(s);}
+function unb64(s){const bin=atob(s);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return u8;}
+function fmtDate(iso){if(!iso)return'';const d=new Date(iso);return isNaN(d)?iso:`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
+
+/* ========== constants ========== */
+const ROLES=['患者','家族','看護師','医師','薬剤師','臨床検査技師','臨床工学技士','診療放射線技師','リハビリ職','管理栄養士','事務職','その他職種','機器・モノ','情報・書類','その他'];
+const THING_ROLES=new Set(['機器・モノ','情報・書類','その他']);
+const LEVELS=[['','未選択'],['0','レベル0：エラーがあったが患者には実施されなかった'],['1','レベル1：患者への実害はなかった'],['2','レベル2：処置や治療は行わなかった（観察強化・検査等の必要は生じた）'],['3a','レベル3a：簡単な処置や治療を要した'],['3b','レベル3b：濃厚な処置や治療を要した'],['4a','レベル4a：永続的な障害・後遺症（有意な機能障害を伴わない）'],['4b','レベル4b：永続的な障害・後遺症（有意な機能障害を伴う）'],['5','レベル5：死亡']];
+const CATEGORIES=['','薬剤','輸血','治療・処置','医療機器等','ドレーン・チューブ','検査','療養上の世話','その他'];
+const PMSHELL=[{key:'P',short:'P',label:'P 患者',color:'#e53935'},{key:'m',short:'m',label:'m 管理・組織',color:'#8e24aa'},{key:'S',short:'S',label:'S ソフトウェア（手順・ルール・書類）',color:'#00897b'},{key:'H',short:'H',label:'H ハードウェア（機器・設備・物品）',color:'#6d4c41'},{key:'E',short:'E',label:'E 環境（照明・騒音・時間帯・風土）',color:'#43a047'},{key:'L2',short:'L他',label:'L 他者（同僚・多職種・家族）',color:'#1e88e5'},{key:'L1',short:'L当',label:'L 当事者（状態・スキル・認知）',color:'#fb8c00'}];
+const CERTAINTY=['事実','推測','不明'];
+const SOURCES=['会議','報告書','ヒアリング'];
+const NODE_STYLE={problem:{fill:'#fde2e2',stroke:'#d32f2f',label:'最終事象'},action:{fill:'#ffffff',stroke:'#1976d2',label:'行動'},judge:{fill:'#e3f2fd',stroke:'#1976d2',label:'判断'},state:{fill:'#f3f4f6',stroke:'#6b7280',label:'状態・状況'},cushion:{fill:'#fff8c5',stroke:'#f2b705',label:'正しいと判断'}};
+const TYPE_OPTIONS=[['state','状態・状況'],['action','行動'],['judge','判断']];
+const GUIDE=[{no:1,label:'やめる（なくす）',step:'I',ex:'危険な作業・物品そのものをなくす（高濃度K製剤の病棟配置をやめる）'},{no:2,label:'できないようにする',step:'I',ex:'物理的に誤接続・誤操作ができない形にする（誤接続防止コネクタ）'},{no:3,label:'わかりやすくする',step:'II',ex:'表示・配置・名称を見分けやすくする（類似薬の色分け）'},{no:4,label:'やりやすくする',step:'II',ex:'手順を簡単に・道具をそろえる（手順の単純化、セット化）'},{no:5,label:'知覚能力を持たせる',step:'II',ex:'見える・聞こえる状態にする（照明、拡大鏡、騒音対策）'},{no:6,label:'認知・予測させる',step:'II',ex:'次に起こることを予測できる情報を与える（指示の理由を伝える）'},{no:7,label:'安全を優先させる',step:'II',ex:'迷ったら安全側の判断ができる決まりにする（確認できるまで実施しない）'},{no:8,label:'できる能力を持たせる',step:'II',ex:'知識・技能を身につける（教育・訓練・シミュレーション）'},{no:9,label:'自分で気づかせる',step:'III',ex:'本人がエラーに気づける仕組み（指差呼称、チェックリスト）'},{no:10,label:'検出する',step:'III',ex:'他者・機器で検出する（ダブルチェック、バーコード照合、アラーム）'},{no:11,label:'備える',step:'IV',ex:'起きても被害を最小にする備え（拮抗薬の常備、早期発見体制）'}];
+const STEP4M={I:'STEP I 最小遭遇',II:'STEP II 最小確率',III:'STEP III 多重検出',IV:'STEP IV 最小被害'};
+const RATINGS=[['',''],['◎','◎'],['○','○'],['△','△']];
+const DECISIONS=[['','未定'],['採用','採用'],['保留','保留'],['不採用','不採用']];
+const STATUSES=[['未着手','未着手'],['実施中','実施中'],['完了','完了']];
+const P_CATS=['経験・勤務状況','持っていた情報','持っていなかった情報','思い・意図','過去の行動・記憶','身体・心理状態','その他'];
+const STEPS_IM=[{id:'basic',label:'基本情報'},{id:'s1',label:'① 時系列事象関連図'},{id:'s2',label:'② 問題点の抽出'},{id:'s3',label:'③ 背後要因の探索'},{id:'s4',label:'④ 対策案の列挙'},{id:'s5',label:'⑤ 対策の決定'},{id:'s6',label:'⑥ 実施計画'},{id:'s7',label:'⑦ 評価'},{id:'out',label:'出力'}];
+const STEPS_Q=[{id:'quick',label:'QuickSAFER 分析シート'},{id:'out',label:'出力'}];
+const stepsForMode=()=>S.mode==='QuickSAFER'?STEPS_Q:STEPS_IM;
+const PAPERS={A4:{w:210,h:297},A3:{w:297,h:420}};
+
+/* ========== state ========== */
+let S=null;
+const ui={step:'basic',editing:null,editingIsNew:false,editSnapshot:null,editingNode:null,editingNodeIsNew:false,selectedNode:null,vb:null,tlZoom:1,fileHandle:null,fileName:null,password:null,dirty:false};
+const history={past:[],future:[]};
+function newCase(mode='ImSAFER'){const now=new Date().toISOString();return{id:uid(),mode,caseNo:'',occurredDate:'',analysisDate:now.slice(0,10),department:'',level:'',category:'',summary:'',members:'',createdAt:now,updatedAt:now,persons:[{id:uid(),role:'患者',mark:'A',note:'',name:'',width:180},{id:uid(),role:'その他',mark:'',note:'',name:'その他（モノ・情報）',width:180}],rows:[{id:uid(),time:''},{id:uid(),time:''},{id:uid(),time:''}],events:[],factors:[],measures:[],quick:{actor:null,action:'',pe:[]}};}
+function migrate(c){const d=newCase();for(const k of Object.keys(d))if(c[k]===undefined)c[k]=d[k];c.persons.forEach(p=>{p.width=p.width||180;p.note=p.note||'';p.name=p.name||'';p.mark=p.mark||'';});c.events.forEach(e=>{e.certainty=e.certainty||'事実';e.source=e.source||'会議';e.problemNo=e.problemNo||null;e.isFinal=!!e.isFinal;e.checked=!!e.checked;e.flag=e.flag||'';});c.factors.forEach(f=>{f.pmshell=f.pmshell||null;f.actionable=!!f.actionable;f.otherActor=!!f.otherActor;});c.measures=c.measures||[];c.measures.forEach(m=>Object.assign(m,{...newMeasure(m.factorId),...m}));c.quick=c.quick||{actor:null,action:'',pe:[]};c.quick.pe=c.quick.pe||[];return c;}
+function newMeasure(factorId){return{id:uid(),factorId:factorId||null,text:'',guide:null,eval:{effect:'',feas:'',cost:'',side:''},decision:'',note:'',owner:'',due:'',method:'',done:'',status:'未着手',reviewDate:'',fixation:'',effectResult:'',newIssues:'',next:''};}
+function snapshot(){return JSON.stringify(S);}
+function pushHistory(snap){history.past.push(snap||snapshot());if(history.past.length>100)history.past.shift();history.future=[];}
+function mutate(fn){flushEdits();pushHistory();fn();afterChange();}
+
+function afterChange(){ui.dirty=true;S.updatedAt=new Date().toISOString();scheduleDraft();render();}
+function undo(){flushEdits();if(!history.past.length)return;history.future.push(snapshot());S=JSON.parse(history.past.pop());ui.editing=null;ui.editingNode=null;ui.dirty=true;scheduleDraft();render();}
+function redo(){flushEdits();if(!history.future.length)return;history.past.push(snapshot());S=JSON.parse(history.future.pop());ui.editing=null;ui.editingNode=null;ui.dirty=true;scheduleDraft();render();}
+const byEv=id=>S.events.find(e=>e.id===id);
+const byPerson=id=>S.persons.find(p=>p.id===id);
+const byF=id=>S.factors.find(f=>f.id===id);
+function personLabel(p){if(!p)return'';if(THING_ROLES.has(p.role))return p.name||(p.role+(p.mark||''));return p.role+(p.mark||'')+(p.note?`（${p.note}）`:'');}
+function finalEvent(){return S.events.find(e=>e.isFinal)||null;}
+function problems(){return S.events.filter(e=>e.problemNo).sort((a,b)=>a.problemNo-b.problemNo);}
+
+/* ========== modal ========== */
+function openModal({title,body,buttons=[],width,closable=true,onClose}){
+  const back=h('div',{class:'modal-back'});
+  const box=h('div',{class:'modal',style:width?`width:${width}`:''});
+  const close=()=>{back.remove();onClose&&onClose();};
+  box.append(h('div',{class:'modal-head'},h('h3',{},title),closable?h('button',{class:'icon',title:'閉じる',onclick:close},'✕'):null));
+  const bodyEl=h('div',{class:'modal-body'});
+  if(typeof body==='string')bodyEl.innerHTML=body;else bodyEl.append(body);
+  box.append(bodyEl);
+  if(buttons.length)box.append(h('div',{class:'modal-foot'},...buttons.map(b=>h('button',{class:b.primary?'primary':(b.danger?'danger':''),onclick:async()=>{const r=b.onClick?await b.onClick(bodyEl,close):undefined;if(r!==false)close();}},b.label))));
+  back.append(box);document.body.append(back);
+  if(closable)back.addEventListener('mousedown',e=>{if(e.target===back)close();});
+  return{close,body:bodyEl,box};
+}
+function confirmDlg(msg,{okLabel='OK',danger=false}={}){return new Promise(res=>openModal({title:'確認',body:`<p>${esc(msg).replace(/\n/g,'<br>')}</p>`,closable:false,buttons:[{label:'キャンセル',onClick:()=>res(false)},{label:okLabel,primary:!danger,danger,onClick:()=>res(true)}]}));}
+function alertDlg(msg,title='お知らせ'){return new Promise(res=>openModal({title,body:`<p>${esc(msg).replace(/\n/g,'<br>')}</p>`,closable:false,buttons:[{label:'OK',primary:true,onClick:()=>res()}]}));}
+function promptPassword(msg){return new Promise(res=>{const inp=h('input',{type:'password',class:'full',placeholder:'パスワード'});const m=openModal({title:'パスワード',body:h('div',{},h('p',{},msg),inp),closable:false,buttons:[{label:'キャンセル',onClick:()=>res(null)},{label:'OK',primary:true,onClick:()=>res(inp.value)}]});setTimeout(()=>inp.focus(),0);inp.addEventListener('keydown',e=>{if(e.key==='Enter'){res(inp.value);m.close();}});});}
+
+/* ========== persistence ========== */
+async function deriveKey(pw,salt,iter){const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
+async function encryptText(pw,text){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),iter=200000;const key=await deriveKey(pw,salt,iter);const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(text));return{salt:b64(salt),iv:b64(iv),iter,data:b64(new Uint8Array(ct))};}
+async function decryptText(pw,obj){const key=await deriveKey(pw,unb64(obj.salt),obj.iter||200000);const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(obj.iv)},key,unb64(obj.data));return new TextDecoder().decode(pt);}
+const cryptoOK=()=>!!(window.crypto&&crypto.subtle);
+function serialize(){return JSON.stringify({app:APP_ID,format:1,savedAt:new Date().toISOString(),case:S});}
+async function buildFileText(){const plain=serialize();if(!ui.password)return plain;const enc=await encryptText(ui.password,plain);return JSON.stringify({app:APP_ID,format:1,encrypted:true,...enc});}
+async function parseFileText(text){let obj;try{obj=JSON.parse(text);}catch{throw new Error('ファイルの形式が正しくありません。');}if(obj.app!==APP_ID)throw new Error('このアプリで作成したファイルではありません。');
+  if(obj.encrypted){if(!cryptoOK())throw new Error('この環境ではパスワード付きファイルを開けません。');const pw=await promptPassword('このファイルはパスワードで保護されています。');if(pw==null)return null;try{const plain=await decryptText(pw,obj);return{case:migrate(JSON.parse(plain).case),password:pw};}catch{throw new Error('パスワードが違うか、ファイルが壊れています。');}}
+  return{case:migrate(obj.case),password:null};}
+function suggestedName(){const no=(S.caseNo||'事例').replace(/[\\/:*?"<>|]/g,'_');return`ImSAFER_${no}_${(S.analysisDate||'').replace(/-/g,'')||'draft'}.json`;}
+function downloadText(text,name){const a=h('a',{href:URL.createObjectURL(new Blob([text],{type:'application/json'})),download:name});document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);}
+const FILE_TYPES=[{description:'ImSAFER分析ファイル',accept:{'application/json':['.json']}}];
+async function saveFile(saveAs=false){
+  flushEdits();
+  const text=await buildFileText();const name=ui.fileName||suggestedName();
+  if('showSaveFilePicker' in window){
+    try{
+      if(saveAs||!ui.fileHandle){ui.fileHandle=await showSaveFilePicker({suggestedName:name,types:FILE_TYPES});}
+      const w=await ui.fileHandle.createWritable();await w.write(text);await w.close();
+      ui.fileName=ui.fileHandle.name;markSaved();addRecent(ui.fileHandle);return true;
+    }catch(e){if(e&&e.name==='AbortError')return false;console.warn('FSA save failed, fallback to download',e);ui.fileHandle=null;}
+  }
+  downloadText(text,name);ui.fileName=name;markSaved();
+  alertDlg(`「${name}」をダウンロードフォルダに保存しました。\n必要に応じて任意のフォルダへ移動してください。`);
+  return true;
+}
+function markSaved(){ui.dirty=false;clearDraft();renderShell();}
+function pickFileFallback(){return new Promise(res=>{const inp=h('input',{type:'file',accept:'.json,application/json',style:'display:none'});inp.addEventListener('change',()=>{res(inp.files[0]||null);inp.remove();});document.body.append(inp);inp.click();});}
+async function openFile(){
+  flushEdits();
+  if(ui.dirty&&!(await confirmDlg('未保存の変更があります。破棄してファイルを開きますか？',{okLabel:'破棄して開く',danger:true})))return;
+  let text=null,handle=null,name=null;
+  if('showOpenFilePicker' in window){try{[handle]=await showOpenFilePicker({types:FILE_TYPES});const f=await handle.getFile();text=await f.text();name=f.name;}catch(e){if(e&&e.name==='AbortError')return;handle=null;}}
+  if(text==null){const f=await pickFileFallback();if(!f)return;text=await f.text();name=f.name;}
+  try{const r=await parseFileText(text);if(!r)return;loadCase(r.case,{handle,name,password:r.password});if(handle)addRecent(handle);}catch(e){alertDlg(e.message);}
+}
+function loadCase(c,{handle=null,name=null,password=null}={}){S=c;history.past=[];history.future=[];Object.assign(ui,{step:c.mode==='QuickSAFER'?'quick':'basic',editing:null,editingNode:null,selectedNode:null,vb:null,fileHandle:handle,fileName:name,password,dirty:false});clearDraft();render();}
+async function newCaseFlow(){flushEdits();if(ui.dirty&&!(await confirmDlg('未保存の変更があります。破棄して新しい事例を作成しますか？',{okLabel:'破棄して新規作成',danger:true})))return;
+  const m=openModal({title:'新規作成',body:h('div',{class:'start-grid'},h('button',{class:'primary',onclick:()=>{m.close();loadCase(newCase('ImSAFER'));}},'ImSAFER（多職種・本格分析）'),h('button',{onclick:()=>{m.close();loadCase(newCase('QuickSAFER'));}},'QuickSAFER（部署・即行分析）'))});}
+/* draft */
+let draftTimer=null;
+function scheduleDraft(){clearTimeout(draftTimer);draftTimer=setTimeout(saveDraft,2000);}
+async function saveDraft(){try{const plain=serialize();let payload=plain,encrypted=false;if(ui.password&&cryptoOK()){payload=JSON.stringify(await encryptText(ui.password,plain));encrypted=true;}localStorage.setItem(DRAFT_KEY,JSON.stringify({savedAt:new Date().toISOString(),fileName:ui.fileName,caseNo:S.caseNo,encrypted,payload}));}catch(e){console.warn('draft',e);}}
+function clearDraft(){clearTimeout(draftTimer);try{localStorage.removeItem(DRAFT_KEY);}catch{}}
+function readDraft(){try{return JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');}catch{return null;}}
+async function restoreDraft(){const d=readDraft();if(!d)return;let plain=d.payload,pw=null;if(d.encrypted){pw=await promptPassword('下書きはパスワードで保護されています。');if(pw==null)return;try{plain=await decryptText(pw,JSON.parse(d.payload));}catch{alertDlg('パスワードが違います。');return;}}try{const obj=JSON.parse(plain);loadCase(migrate(obj.case),{name:d.fileName,password:pw});ui.dirty=true;scheduleDraft();renderShell();}catch(e){alertDlg('下書きを復元できませんでした。');}}
+/* recent (IndexedDB) */
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('imsafer-app',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function kvGet(k){try{const db=await idb();return await new Promise((res,rej)=>{const t=db.transaction('kv').objectStore('kv').get(k);t.onsuccess=()=>res(t.result);t.onerror=()=>rej(t.error);});}catch{return null;}}
+async function kvSet(k,v){try{const db=await idb();await new Promise((res,rej)=>{const t=db.transaction('kv','readwrite').objectStore('kv').put(v,k);t.onsuccess=()=>res();t.onerror=()=>rej(t.error);});}catch(e){console.warn(e);}}
+async function addRecent(handle){if(!handle)return;try{const list=(await kvGet('recent'))||[];const out=[];for(const r of list){let same=false;try{same=await r.handle.isSameEntry(handle);}catch{}if(!same)out.push(r);}out.unshift({name:handle.name,handle,at:Date.now()});await kvSet('recent',out.slice(0,8));}catch(e){console.warn(e);}}
+async function openRecent(r){try{if(ui.dirty&&!(await confirmDlg('未保存の変更があります。破棄して開きますか？',{okLabel:'破棄して開く',danger:true})))return;const p=await r.handle.requestPermission({mode:'readwrite'});if(p!=='granted')return;const f=await r.handle.getFile();const res=await parseFileText(await f.text());if(!res)return;loadCase(res.case,{handle:r.handle,name:f.name,password:res.password});}catch(e){alertDlg('ファイルを開けませんでした：'+e.message);}}
+
+/* ========== shell ========== */
+function go(step){flushEdits();ui.step=step;ui.selectedNode=null;if(step!=='s1'){ui.confirmMode=false;document.body.classList.remove('confirm');}render();}
+function renderShell(){
+  $('#fileName').textContent=ui.fileName||('新しい事例'+(S.caseNo?`（${S.caseNo}）`:''));
+  $('#dirty').hidden=!ui.dirty;
+  $('#btnUndo').disabled=!history.past.length;$('#btnRedo').disabled=!history.future.length;
+  $('#btnBig').classList.toggle('active',document.body.classList.contains('big'));
+  const nav=$('#nav');nav.innerHTML='';
+  for(const s of stepsForMode()){nav.append(btn(s.label,()=>go(s.id),{class:ui.step===s.id?'active':'',disabled:!!s.disabled,title:s.title||''}));}
+  nav.append(h('span',{class:'mode'},`モード：${S.mode}`+(ui.password?'　🔒 パスワード保護':'')));
+  document.title=`${ui.fileName||'新しい事例'}${ui.dirty?' *':''} - ImSAFER 分析支援`;
+}
+function scrollKey(){return ui.step==='s1'||ui.step==='s2'?'tl':ui.step;}
+function render(){
+  renderShell();const main=$('#main');
+  const sc=$('.scroll',main);if(sc)ui.scrollPos={key:scrollKey(),t:sc.scrollTop,l:sc.scrollLeft};
+  main.innerHTML='';({basic:renderBasic,s1:()=>renderTimeline(1),s2:()=>renderTimeline(2),s3:renderTree,s4:renderS4,s5:renderS5,s6:renderS6,s7:renderS7,quick:renderQuick,out:renderOutput})[ui.step]();
+  if(ui.focusKey){const fe=$(`[data-fk="${ui.focusKey}"]`,main);ui.focusKey=null;if(fe){fe.focus();if(fe.tagName==='TEXTAREA')autoGrow({target:fe});}}
+  const sc2=$('.scroll',main);if(sc2&&ui.scrollPos&&ui.scrollPos.key===scrollKey()){sc2.scrollTop=ui.scrollPos.t;sc2.scrollLeft=ui.scrollPos.l;}
+}
+
+/* ========== basic info ========== */
+function renderBasic(){
+  const main=$('#main');const wrap=h('div',{class:'view'},h('div',{class:'scroll'}));const box=h('div',{class:'form-wrap'});
+  const field=(label,el)=>h('div',{class:'field'},h('label',{},label),el);
+  const inp=(k,type='text',ph='')=>txt(()=>S[k],v=>{S[k]=v;},{type,placeholder:ph});
+  const selK=(k,opts)=>sel(()=>S[k],v=>{S[k]=v;},opts.map(o=>Array.isArray(o)?o:[o,o||'未選択']),{class:'full'});
+  box.append(h('h2',{},'基本情報'),
+    field('事例No',inp('caseNo','text','例：2026-015')),
+    field('発生日',inp('occurredDate','date')),
+    field('分析日',inp('analysisDate','date')),
+    field('部署',inp('department','text','例：3階西病棟')),
+    field('事象レベル',selK('level',LEVELS)),
+    field('事象の種類',selK('category',CATEGORIES)),
+    field('分析メンバー（職種）',inp('members','text','例：医療安全管理者、看護師、薬剤師、臨床工学技士')),
+    field('概要',bindText(h('textarea',{class:'full',rows:4,placeholder:'報告書の概要を簡潔に。個人が特定される情報は書かないでください。',value:S.summary||''}),v=>{S.summary=v;})),
+    h('div',{class:'warnbox'},'氏名・患者IDなどの個人情報は入力しないでください。患者は「患者A」、職員は「看護師A」「医師A」のように表記します（登場人物は①の画面で役割＋記号から自動生成されます）。'),
+    h('h2',{style:'margin-top:20px'},'ファイルの保護'),
+    h('div',{class:ui.password?'okbox':'note'},ui.password?'🔒 このファイルはパスワードで保護されます（保存時に暗号化）。':'パスワードは設定されていません。保存ファイルは誰でも開けます。'),
+    h('div',{style:'display:flex;gap:8px;margin-top:8px'},btn(ui.password?'パスワードを変更':'パスワードを設定',setPasswordFlow),ui.password?btn('パスワードを解除',async()=>{if(await confirmDlg('パスワード保護を解除しますか？次回保存から暗号化されなくなります。')){ui.password=null;ui.dirty=true;render();}},{class:'danger'}):null),
+    h('p',{class:'note',style:'margin-top:16px'},`作成：${fmtDate(S.createdAt)}　更新：${fmtDate(S.updatedAt)}`)
+  );
+  wrap.firstChild.append(box);main.append(wrap);
+}
+function setPasswordFlow(){
+  if(!cryptoOK()){alertDlg('この環境では暗号化機能が使えません（file:// または localhost で開いてください）。');return;}
+  const p1=h('input',{type:'password',class:'full',placeholder:'パスワード（4文字以上）'}),p2=h('input',{type:'password',class:'full',placeholder:'確認のためもう一度'});
+  openModal({title:'パスワードの設定',body:h('div',{},h('p',{},'保存ファイルと下書きがこのパスワードで暗号化されます。'),h('p',{class:'note'},'パスワードを忘れるとファイルは開けません。必ず控えてください。'),h('div',{style:'display:grid;gap:8px;margin-top:8px'},p1,p2)),buttons:[{label:'キャンセル'},{label:'設定',primary:true,onClick:()=>{if(p1.value.length<4){alertDlg('4文字以上にしてください。');return false;}if(p1.value!==p2.value){alertDlg('パスワードが一致しません。');return false;}ui.password=p1.value;ui.dirty=true;scheduleDraft();render();}}]});
+  setTimeout(()=>p1.focus(),0);
+}
+
+/* ========== timeline (step 1 & 2) ========== */
+function renderTimeline(step){
+  const main=$('#main');const view=h('div',{class:'view'});
+  const list=ui.tlMode==='list'&&step===1;
+  const tb=h('div',{class:'toolbar'},
+    btn(list?'図に戻る':'一覧入力',()=>{ui.tlMode=list?'grid':'list';ui.confirmMode=false;render();},{class:list?'primary':'',title:'Excel 風の一覧で上から順に入力します'}),
+    step===1&&!list?btn(ui.confirmMode?'確認モードを終了':'確認モード',()=>{ui.confirmMode=!ui.confirmMode;if(ui.confirmMode)ui.confirmCurrent=nextUnchecked(null);render();},{class:ui.confirmMode?'primary':'',title:'会議で報告書由来の付箋を1枚ずつ確認します'}):null,
+    h('span',{class:'sep'}),
+    btn('＋ 登場人物',()=>openPersonModal()),
+    list?btn('＋ 出来事を追加',()=>addListEvent(null),{}):btn('＋ 行を追加',()=>mutate(()=>{S.rows.push({id:uid(),time:''});})),
+    btn('時刻順に並べ替え',sortRowsByTime,{title:'「7:20」「前日 18:30」「9/10 7:20」などを解釈して行を時刻順に並べます（元に戻せます）'}),
+    btn('事前入力（一括流し込み）',openPreloadModal),
+    btn('Excel 入力シートから取り込む',importInputSheet,{title:'ImSAFER 入力シート（.xlsm / .xlsx）を読み込んで時系列事象関連図を作ります'}),
+    h('span',{class:'sep'}),
+    list?null:btn('－',()=>{ui.tlZoom=Math.max(.5,ui.tlZoom-.1);render();},{title:'縮小'}),list?null:h('span',{},Math.round(ui.tlZoom*100)+'%'),list?null:btn('＋',()=>{ui.tlZoom=Math.min(2,ui.tlZoom+.1);render();},{title:'拡大'}),list?null:btn('100%',()=>{ui.tlZoom=1;render();}),
+    h('span',{class:'hint'},list?'Enter＝次の出来事へ／Shift+Enter＝改行。時刻の「⏱」で日付・時刻を組み立てられます。':step===1?(ui.confirmMode?'報告書・ヒアリング由来の付箋を1枚ずつ確認し、✓ を付けます。修正が必要なものは「要修正」に。':'セルをクリックして付箋を追加。Enter＝下の行へ／Tab＝右の列へ／Shift+Enter＝改行／Esc＝取消。付箋はドラッグで移動。'):'付箋の「×」で問題点に番号を付け、右の一覧で最終事象（患者への影響が最大の問題点）に ★ を指定します。'));
+  const scroll=h('div',{class:'scroll'});
+  if(list){scroll.append(buildListEditor());}
+  else{const table=buildTimelineTable();scroll.append(h('div',{class:'tl-zoom',style:`zoom:${ui.tlZoom}`},table));}
+  view.append(tb,scroll);main.append(view);
+  document.body.classList.toggle('confirm',!!ui.confirmMode&&step===1&&!list);
+  if(step===2)main.append(renderProblemPanel());
+  else if(step===1&&!list&&ui.confirmMode)main.append(renderConfirmPanel());
+  const ta=$('textarea.card-edit');if(ta){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);autoGrow({target:ta});}
+  if(ui.confirmMode&&ui.confirmCurrent){const el=$(`.card[data-id="${ui.confirmCurrent}"]`);if(el)setTimeout(()=>el.scrollIntoView({block:'center',inline:'nearest'}),0);}
+}
+/* ---- list editor ---- */
+function personOrder(){const idx=new Map(S.persons.map((p,i)=>[p.id,i]));return e=>idx.get(e.personId)??999;}
+function orderedEvents(){const po=personOrder();const out=[];for(const r of S.rows){const evs=S.events.filter(e=>e.rowId===r.id).sort((a,b)=>po(a)-po(b));for(const e of evs)out.push({r,e});}return out;}
+function addListEvent(afterRowId,personId){
+  const last=orderedEvents().slice(-1)[0];
+  const p=personId||(afterRowId?S.events.find(e=>e.rowId===afterRowId)?.personId:null)||(last?last.e.personId:null)||(S.persons.find(x=>!THING_ROLES.has(x.role))||S.persons[0]).id;
+  const r={id:uid(),time:''};const ev={id:uid(),rowId:r.id,personId:p,text:'',certainty:'事実',source:'会議',problemNo:null,isFinal:false,checked:false,flag:''};
+  ui.focusKey='lt-'+ev.id;
+  mutate(()=>{const emptyIdx=S.rows.findIndex(x=>!x.time&&!S.events.some(e=>e.rowId===x.id));if(!afterRowId&&emptyIdx>=0&&!S.events.length){S.rows=[];}
+    if(afterRowId){const i=S.rows.findIndex(x=>x.id===afterRowId);S.rows.splice(i+1,0,r);}else S.rows.push(r);S.events.push(ev);});
+}
+function buildListEditor(){
+  const tbl=h('table',{class:'lt'});
+  tbl.append(h('thead',{},h('tr',{},h('th',{},'No.'),h('th',{},'日付・時刻'),h('th',{},'登場人物'),h('th',{style:'min-width:360px'},'出来事・行動（事実のみ）'),h('th',{},'確度'),h('th',{},'出所'),h('th',{},'×'),h('th',{},'★'),h('th',{},'✓'),h('th',{},'操作'))));
+  const tb=h('tbody',{});let n=0;
+  const rowsSeen=new Set();
+  for(const r of S.rows){
+    const evs=S.events.filter(e=>e.rowId===r.id);const po=personOrder();evs.sort((a,b)=>po(a)-po(b));
+    if(!evs.length){tb.append(h('tr',{class:'emptyrow'},h('td',{class:'no'},'－'),h('td',{class:'tm'},timeCell(r)),h('td',{colSpan:7},h('span',{class:'note'},'（付箋のない行）'),btn('＋ 出来事',()=>addListEvent(r.id),{class:'mini',style:'margin-left:8px'})),h('td',{},h('div',{class:'ops'},rowOps(r)))));continue;}
+    evs.forEach((ev,k)=>{n++;const tr=h('tr',{class:evs.length>1?'shared':''});
+      tr.append(h('td',{class:'no'},String(n)));
+      tr.append(h('td',{class:'tm',title:evs.length>1?'この時刻は同じ行の付箋 '+evs.length+' 枚で共有されています':''},k===0?timeCell(r):h('span',{class:'note'},'〃')));
+      tr.append(h('td',{},sel(()=>ev.personId,v=>{ev.personId=v;},S.persons.map(p=>[p.id,personLabel(p)]))));
+      const ta=h('textarea',{rows:1,value:ev.text,placeholder:'出来事・行動',dataset:{fk:'lt-'+ev.id}});bindText(ta,v=>{ev.text=v;});ta.addEventListener('input',autoGrow);requestAnimationFrame(()=>autoGrow({target:ta}));
+      ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();flushField();addListEvent(r.id,ev.personId);}});
+      const wh=writingHint(ev.text);
+      tr.append(h('td',{},ta,wh?h('div',{class:'note',style:'color:#b45309'},'！ '+wh.split('\n')[0]):null));
+      tr.append(h('td',{},sel(()=>ev.certainty,v=>{ev.certainty=v;},CERTAINTY.map(c=>[c,c]))));
+      tr.append(h('td',{},sel(()=>ev.source,v=>{ev.source=v;},SOURCES.map(c=>[c,c]))));
+      tr.append(h('td',{},btn(ev.problemNo?`×${ev.problemNo}`:'×',()=>toggleProblem(ev.id),{class:'tog'+(ev.problemNo?' on':''),title:'問題点'})));
+      tr.append(h('td',{},btn('★',()=>{if(ev.isFinal)mutate(()=>{ev.isFinal=false;});else setFinal(ev.id);},{class:'tog star'+(ev.isFinal?' on':''),title:'最終事象'})));
+      tr.append(h('td',{},btn('✓',()=>mutate(()=>{ev.checked=!ev.checked;}),{class:'tog chk'+(ev.checked?' on':''),title:'会議で確認済み'})));
+      tr.append(h('td',{},h('div',{class:'ops'},...(k===0?rowOps(r):[]),btn('⊕',()=>addListEvent(r.id,ev.personId),{class:'mini',title:'この下に出来事を追加'}),btn('🗑',()=>deleteEvent(ev.id),{class:'mini',title:'この出来事を削除'}))));
+      tb.append(tr);});
+  }
+  tbl.append(tb);
+  const wrap=h('div',{},tbl,h('div',{style:'padding:8px 0'},btn('＋ 出来事を追加',()=>addListEvent(null),{}),h('span',{class:'note',style:'margin-left:10px'},'同じ時刻の出来事は図では同じ行に並びます。行の上下移動は「↑↓」')));
+  return wrap;
+}
+function rowOps(r){const i=S.rows.indexOf(r);return[btn('↑',()=>mutate(()=>{if(i>0)[S.rows[i-1],S.rows[i]]=[S.rows[i],S.rows[i-1]];}),{class:'mini',title:'行を上へ',disabled:i===0}),btn('↓',()=>mutate(()=>{if(i<S.rows.length-1)[S.rows[i+1],S.rows[i]]=[S.rows[i],S.rows[i+1]];}),{class:'mini',title:'行を下へ',disabled:i===S.rows.length-1})];}
+function timeCell(r){const inp=bindText(h('input',{value:r.time||'',placeholder:'時刻'}),v=>{r.time=v;});return h('div',{class:'tcell'},inp,btn('⏱',()=>openTimePicker(r),{class:'mini',title:'日付・時刻を組み立てる'}));}
+const REL_WORDS=['','前々日','前日','当日','翌日','翌々日','翌朝'];
+function openTimePicker(r){
+  const cur=r.time||'';
+  const rel=h('select',{},...REL_WORDS.map(w=>h('option',{value:w},w||'（表現なし）')));const found=REL_WORDS.find(w=>w&&cur.includes(w));if(found)rel.value=found;
+  const date=h('input',{type:'date'});const md=/(\d{1,2})\/(\d{1,2})/.exec(cur);const ymd=/(\d{4})-(\d{2})-(\d{2})/.exec(cur);
+  if(ymd)date.value=ymd[0];else if(md&&S.occurredDate){date.value=`${S.occurredDate.slice(0,4)}-${md[1].padStart(2,'0')}-${md[2].padStart(2,'0')}`;}
+  const time=h('input',{type:'time'});const hm=/(\d{1,2}):(\d{2})/.exec(cur);if(hm)time.value=`${hm[1].padStart(2,'0')}:${hm[2]}`;
+  const prev=h('div',{class:'note'});
+  const build=()=>{const parts=[];if(rel.value)parts.push(rel.value);if(date.value){const [y,m,d]=date.value.split('-');parts.push(`${+m}/${+d}`);}if(time.value)parts.push(time.value);return parts.join(' ');};
+  const upd=()=>{prev.textContent='→ '+(build()||'（空欄）');};[rel,date,time].forEach(el=>el.addEventListener('input',upd));upd();
+  openModal({title:'日付・時刻の入力',body:h('div',{style:'display:grid;gap:8px'},h('label',{},'表現　',rel),h('label',{},'日付　',date,h('span',{class:'note'},'　図には「月/日」で表示')),h('label',{},'時刻　',time),prev,h('p',{class:'note'},'例：「前日」＋「18:30」→ 前日 18:30　／　日付＋時刻 → 9/10 7:20　／　時刻だけ → 7:20')),buttons:[{label:'クリア',onClick:()=>{mutate(()=>{r.time='';});}},{label:'キャンセル'},{label:'セット',primary:true,onClick:()=>{const v=build();mutate(()=>{r.time=v;});}}]});
+  setTimeout(()=>time.focus(),0);
+}
+/* ---- time sort ---- */
+const REL_OFFSET={'前々日':-2,'前日':-1,'当日':0,'翌日':1,'翌々日':2,'翌朝':1};
+function epochDays(y,m,d){return Math.round(Date.UTC(y,m-1,d)/86400000);}
+function parseTimeLabel(label,baseDay,baseYear){
+  const t=String(label||'').trim();if(!t)return null;let day=null,min=null,rel=null;
+  let m=/(\d{4})[\/\-年.](\d{1,2})[\/\-月.](\d{1,2})/.exec(t);if(m)day=epochDays(+m[1],+m[2],+m[3]);
+  else{m=/(?:^|[^\d:])(\d{1,2})[\/月](\d{1,2})(?!\d*[:：])/.exec(t);if(m)day=epochDays(baseYear,+m[1],+m[2]);}
+  for(const k of Object.keys(REL_OFFSET))if(t.includes(k)){rel=REL_OFFSET[k];break;}
+  m=/(\d{1,2})[:：時](\d{1,2})?/.exec(t);if(m){let hh=+m[1];if(/午後|PM|pm/.test(t)&&hh<12)hh+=12;min=hh*60+(+(m[2]||0));}
+  if(day==null&&rel!=null)day=baseDay+rel;
+  if(day==null&&min==null)return null;
+  return{day:day==null?baseDay:day,min:min==null?-1:min};
+}
+function sortRowsByTime(){
+  flushEdits();
+  const now=new Date();let baseDay=null,baseYear=now.getFullYear();
+  if(S.occurredDate){const m=/(\d{4})-(\d{2})-(\d{2})/.exec(S.occurredDate);if(m){baseDay=epochDays(+m[1],+m[2],+m[3]);baseYear=+m[1];}}
+  if(baseDay==null){const abs=S.rows.map(r=>{const m=/(\d{4})[\/\-年.](\d{1,2})[\/\-月.](\d{1,2})/.exec(r.time||'');return m?epochDays(+m[1],+m[2],+m[3]):null;}).filter(x=>x!=null);baseDay=abs.length?Math.min(...abs):0;}
+  let lastKey={day:-1e9,min:-1};let parsed=0;
+  const keyed=S.rows.map((r,i)=>{const k=parseTimeLabel(r.time,baseDay,baseYear);if(k){parsed++;lastKey=k;}return{r,i,k:k||{...lastKey,inherit:true}};});
+  if(!parsed){alertDlg('解釈できる時刻がありません。「7:20」「前日 18:30」「9/10 7:20」のように入力してください。');return;}
+  keyed.sort((a,b)=>a.k.day-b.k.day||a.k.min-b.k.min||a.i-b.i);
+  if(keyed.every((x,i)=>x.i===i)){alertDlg('すでに時刻順に並んでいます。');return;}
+  mutate(()=>{S.rows=keyed.map(x=>x.r);});
+  alertDlg(`時刻を解釈して並べ替えました（${parsed} 行の時刻を認識）。意図と違う場合は「元に戻す」で戻せます。`);
+}
+/* ---- confirm mode ---- */
+function confirmTargets(){return orderedEvents().map(x=>x.e).filter(e=>e.source!=='会議'&&e.text);}
+function nextUnchecked(fromId){const list=confirmTargets();if(!list.length)return null;let i=fromId?list.findIndex(e=>e.id===fromId):-1;for(let k=1;k<=list.length;k++){const e=list[(i+k)%list.length];if(!e.checked)return e.id;}return null;}
+function setChecked(id,val){mutate(()=>{const e=byEv(id);if(e){e.checked=val;if(val)e.flag='';}});}
+function renderConfirmPanel(){
+  const side=h('aside',{class:'side'});const list=confirmTargets();const done=list.filter(e=>e.checked).length;const cur=byEv(ui.confirmCurrent);
+  side.append(h('div',{class:'rules'},h('b',{},'会議用 確認モード'),h('ul',{style:'margin:4px 0 0;padding-left:18px'},h('li',{},'報告書・ヒアリング由来の付箋を、当事者・関係者と1枚ずつ事実確認します'),h('li',{},'確認できたら ✓、直す必要があれば「要修正」を付けてその場で文言を直します'),h('li',{},'確認中に出た事実は新しい付箋（出所：会議）として追加'))));
+  side.append(h('div',{class:'cprog'},`確認済み ${done} / ${list.length} 枚`,h('div',{class:'bar'},h('div',{style:`width:${list.length?Math.round(done/list.length*100):0}%`}))));
+  if(cur){const row=S.rows.find(r=>r.id===cur.rowId);side.append(h('div',{},h('h3',{},'いま確認している付箋'),h('div',{style:'background:#fff8c5;border:1px solid #e0c96b;border-radius:6px;padding:8px'},h('div',{class:'note'},`${row?.time||''}　${personLabel(byPerson(cur.personId))}　[${cur.source}]`),h('div',{style:'margin-top:4px'},cur.text)),
+    h('div',{style:'display:flex;gap:6px;flex-wrap:wrap;margin-top:8px'},btn('✓ 確認済みにして次へ',()=>{const nx=nextUnchecked(cur.id);setChecked(cur.id,true);ui.confirmCurrent=nx&&nx!==cur.id?nx:nextUnchecked(cur.id);render();},{class:'primary'}),btn(cur.flag?'要修正を解除':'要修正',()=>mutate(()=>{cur.flag=cur.flag?'':'要修正';if(cur.flag)cur.checked=false;}),{class:cur.flag?'':'danger'}),btn('文言を直す',()=>{flushEdits();startCardEdit(cur.id);}),btn('スキップ ▶',()=>{ui.confirmCurrent=nextUnchecked(cur.id);render();}))));}
+  else side.append(h('div',{class:'okbox'},list.length?'未確認の付箋はありません。':'報告書・ヒアリング由来の付箋がありません。'));
+  const ul=h('ul',{class:'clist'});
+  for(const e of list){const row=S.rows.find(r=>r.id===e.rowId);ul.append(h('li',{class:(e.id===ui.confirmCurrent?'cur':''),onclick:()=>{flushEdits();ui.confirmCurrent=e.id;render();}},h('span',{class:e.checked?'ok':''},e.checked?'✓ ':(e.flag?'⚠ ':'□ ')),h('span',{class:'m'},`${row?.time||''} ${personLabel(byPerson(e.personId))}　`),e.text.slice(0,40)));}
+  side.append(h('div',{},h('h3',{},'確認対象の一覧'),ul));
+  side.append(h('div',{style:'display:flex;gap:6px;flex-wrap:wrap'},btn('すべて確認済みにする',()=>confirmDlg('報告書・ヒアリング由来の付箋をすべて確認済みにしますか？').then(ok=>ok&&mutate(()=>{list.forEach(e=>{e.checked=true;});})),{class:'mini'}),btn('確認をリセット',()=>confirmDlg('確認済み・要修正の印をすべて外しますか？').then(ok=>ok&&mutate(()=>{S.events.forEach(e=>{e.checked=false;e.flag='';});})),{class:'mini danger'})));
+  return side;
+}
+function autoGrow(e){const t=e.target;t.style.height='auto';t.style.height=(t.scrollHeight+2)+'px';}
+function buildTimelineTable(){
+  const table=h('table',{class:'tl'});
+  const cg=h('colgroup',{},h('col',{style:'width:92px'}),...S.persons.map(p=>h('col',{style:`width:${p.width||180}px`})),h('col',{style:'width:110px'}));
+  table.style.width=(92+S.persons.reduce((a,p)=>a+(p.width||180),0)+110)+'px';
+  table.append(cg);
+  const thead=h('thead',{});const hr=h('tr',{});
+  hr.append(h('th',{class:'timecol'},'時刻'));
+  S.persons.forEach((p,i)=>{
+    const th=h('th',{});
+    const tools=h('div',{class:'ptools'},
+      btn('◀',()=>mutate(()=>{if(i>0){[S.persons[i-1],S.persons[i]]=[S.persons[i],S.persons[i-1]];}}),{class:'mini',title:'左へ',disabled:i===0}),
+      btn('▶',()=>mutate(()=>{if(i<S.persons.length-1){[S.persons[i+1],S.persons[i]]=[S.persons[i],S.persons[i+1]];}}),{class:'mini',title:'右へ',disabled:i===S.persons.length-1}),
+      btn('✎',()=>openPersonModal(p.id),{class:'mini',title:'編集'}),
+      btn('✕',()=>deletePerson(p.id),{class:'mini',title:'削除'}));
+    th.append(h('div',{class:'pname'},h('span',{title:personLabel(p)},personLabel(p)),tools));
+    const rs=h('div',{class:'rs',title:'ドラッグで幅を変更'});
+    rs.addEventListener('mousedown',e=>{e.preventDefault();flushEdits();const startX=e.clientX,startW=p.width||180;const col=cg.children[i+1];const others=92+110+S.persons.filter(q=>q.id!==p.id).reduce((a,q)=>a+(q.width||180),0);const mv=ev=>{const w=Math.max(100,Math.round(startW+(ev.clientX-startX)/ui.tlZoom));col.style.width=w+'px';col.dataset.w=w;table.style.width=(others+w)+'px';};const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);const w=+col.dataset.w||startW;if(w!==startW)mutate(()=>{byPerson(p.id).width=w;});};document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);});
+    th.append(rs);hr.append(th);
+  });
+  hr.append(h('th',{},btn('＋ 登場人物',()=>openPersonModal(),{class:'mini'})));
+  thead.append(hr);table.append(thead);
+  const tbody=h('tbody',{});
+  S.rows.forEach((r,ri)=>{
+    const tr=h('tr',{});
+    const timeInp=bindText(h('input',{class:'time',value:r.time||'',placeholder:'時刻',title:'時刻や日付のラベル（自由記述）'}),v=>{r.time=v;});
+    timeInp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur();}});
+    const rtools=h('div',{class:'rtools'},
+      btn('↑',()=>mutate(()=>{if(ri>0)[S.rows[ri-1],S.rows[ri]]=[S.rows[ri],S.rows[ri-1]];}),{class:'mini',title:'行を上へ',disabled:ri===0}),
+      btn('↓',()=>mutate(()=>{if(ri<S.rows.length-1)[S.rows[ri+1],S.rows[ri]]=[S.rows[ri],S.rows[ri+1]];}),{class:'mini',title:'行を下へ',disabled:ri===S.rows.length-1}),
+      btn('⊕',()=>mutate(()=>{S.rows.splice(ri+1,0,{id:uid(),time:''});}),{class:'mini',title:'この下に行を挿入'}),
+      btn('✕',()=>deleteRow(r.id),{class:'mini',title:'行を削除'}));
+    tr.append(h('td',{class:'timecol'},timeInp,rtools));
+    for(const p of S.persons){
+      const td=h('td',{class:'cell'});const inner=h('div',{class:'cell-inner'});
+      S.events.filter(e=>e.rowId===r.id&&e.personId===p.id).forEach(ev=>inner.append(cardEl(ev)));
+      td.append(inner);
+      td.addEventListener('mousedown',e=>{if(e.button!==0)return;if(e.target!==td&&e.target!==inner)return;e.preventDefault();flushEdits();createCard(r.id,p.id);});
+      td.addEventListener('dragover',e=>{if([...e.dataTransfer.types].includes('text/plain')){e.preventDefault();e.dataTransfer.dropEffect='move';td.classList.add('over');}});
+      td.addEventListener('dragleave',()=>td.classList.remove('over'));
+      td.addEventListener('drop',e=>{e.preventDefault();td.classList.remove('over');const d=e.dataTransfer.getData('text/plain');if(!d.startsWith('ev:'))return;const id=d.slice(3);const ev=byEv(id);if(!ev||(ev.rowId===r.id&&ev.personId===p.id))return;mutate(()=>{ev.rowId=r.id;ev.personId=p.id;});});
+      tr.append(td);
+    }
+    tr.append(h('td',{}));
+    tbody.append(tr);
+  });
+  tbody.append(h('tr',{},h('td',{class:'addrow',colSpan:S.persons.length+2},btn('＋ 行を追加',()=>mutate(()=>{S.rows.push({id:uid(),time:''});}),{class:'mini'}))));
+  table.append(tbody);
+  return table;
+}
+function cardEl(ev){
+  const editing=ui.editing===ev.id;
+  const c=h('div',{class:`card cert-${ev.certainty} src-${ev.source}${ev.problemNo?' prob':''}${ev.isFinal?' final':''}${ev.checked?' checked':''}${ui.confirmMode&&ui.confirmCurrent===ev.id?' cur':''}`,dataset:{id:ev.id},draggable:!editing});
+  c.addEventListener('dragstart',e=>{flushEdits();e.dataTransfer.setData('text/plain','ev:'+ev.id);e.dataTransfer.effectAllowed='move';c.classList.add('dragging');});
+  c.addEventListener('dragend',()=>c.classList.remove('dragging'));
+  const wh=writingHint(ev.text);
+  c.append(h('div',{class:'marks'},ev.problemNo?h('span',{class:'x'},`×(${ev.problemNo})`):null,ev.isFinal?h('span',{class:'star',title:'最終事象'},'★'):null,ev.checked?h('span',{class:'ok',title:'会議で確認済み'},'✓'):null,ev.flag?h('span',{class:'flag'},ev.flag):null,wh?h('span',{class:'whint',title:wh},'！'):null));
+  if(ui.confirmMode&&ev.source!=='会議')c.append(h('div',{class:'cchk'},btn(ev.checked?'✓済':'✓',()=>{setChecked(ev.id,!ev.checked);},{class:'mini',title:'確認済みにする／外す'}),btn('要修正',()=>mutate(()=>{ev.flag=ev.flag?'':'要修正';if(ev.flag)ev.checked=false;}),{class:'mini',title:'要修正の印を付ける／外す'})));
+  c.append(h('div',{class:'ctools'},btn(ev.problemNo?'×解除':'×',()=>toggleProblem(ev.id),{class:'mini',title:'問題点として × を付ける／外す'}),btn('🗑',()=>deleteEvent(ev.id),{class:'mini',title:'付箋を削除'})));
+  if(editing){
+    const ta=h('textarea',{class:'card-edit',rows:2,value:ev.text,placeholder:'出来事・行動を入力'});
+    ta.addEventListener('input',autoGrow);
+    ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();commitCardEdit(ev.id,ta.value,'down');}else if(e.key==='Tab'){e.preventDefault();commitCardEdit(ev.id,ta.value,'right');}else if(e.key==='Escape'){e.preventDefault();cancelCardEdit();}});
+    ta.addEventListener('blur',()=>{if(ui.editing===ev.id)commitCardEdit(ev.id,ta.value,null);});
+    c.append(ta);
+  }else{
+    const t=h('div',{class:'ctext'+(ev.text?'':' empty')},ev.text||'（クリックして入力）');
+    t.addEventListener('click',()=>{flushEdits();startCardEdit(ev.id);});
+    c.append(t);
+  }
+  c.append(h('div',{class:'ctags'},
+    btn(ev.certainty,()=>mutate(()=>{ev.certainty=CERTAINTY[(CERTAINTY.indexOf(ev.certainty)+1)%CERTAINTY.length];}),{class:ev.certainty==='事実'?'':'on',title:'確度（クリックで切替：事実→推測→不明）'}),
+    btn(ev.source,()=>mutate(()=>{ev.source=SOURCES[(SOURCES.indexOf(ev.source)+1)%SOURCES.length];}),{class:ev.source==='会議'?'':'on src',title:'出所（クリックで切替：会議→報告書→ヒアリング）'})));
+  return c;
+}
+function createCard(rowId,personId,snap){ui.editSnapshot=snap||snapshot();const ev={id:uid(),rowId,personId,text:'',certainty:'事実',source:'会議',problemNo:null,isFinal:false,checked:false,flag:''};S.events.push(ev);ui.editing=ev.id;ui.editingIsNew=true;ui.dirty=true;scheduleDraft();render();}
+function startCardEdit(id){ui.editSnapshot=snapshot();ui.editing=id;ui.editingIsNew=false;render();}
+function cancelCardEdit(){if(ui.editingIsNew&&ui.editSnapshot)S=JSON.parse(ui.editSnapshot);ui.editing=null;ui.editingIsNew=false;ui.editSnapshot=null;render();}
+function commitCardEdit(id,text,next){
+  if(ui.editing!==id)return;
+  const ev=byEv(id);const snap=ui.editSnapshot;const isNew=ui.editingIsNew;
+  ui.editing=null;ui.editingIsNew=false;ui.editSnapshot=null;
+  const trimmed=(text||'').trim();
+  if(!ev){render();return;}
+  if(!trimmed){
+    if(isNew){S=JSON.parse(snap);render();return;}
+    pushHistory(snap);S.events=S.events.filter(e=>e.id!==id);renumberProblems();afterChangeLight(id);return;
+  }
+  const changed=trimmed!==ev.text;
+  if(changed||isNew){pushHistory(snap);ev.text=trimmed;ui.dirty=true;S.updatedAt=new Date().toISOString();scheduleDraft();}
+  if(next==='down'){const idx=S.rows.findIndex(r=>r.id===ev.rowId);let row=S.rows[idx+1];const snap2=snapshot();if(!row){row={id:uid(),time:''};S.rows.push(row);}createCard(row.id,ev.personId,snap2);return;}
+  if(next==='right'){const pi=S.persons.findIndex(p=>p.id===ev.personId);const p=S.persons[pi+1];if(p){createCard(ev.rowId,p.id,snapshot());return;}}
+  afterChangeLight(id);
+}
+function afterChangeLight(id){const el=$(`.card[data-id="${id}"]`);const ev=byEv(id);if(el){if(ev)el.replaceWith(cardEl(ev));else el.remove();}renderShell();if(ui.step==='s2'){const side=$('aside.side');if(side)side.replaceWith(renderProblemPanel());}}
+function flushEdits(){
+  flushField();
+  if(ui.editing){const ta=$('textarea.card-edit');const id=ui.editing;commitCardEdit(id,ta?ta.value:(byEv(id)?.text||''),null);}
+  if(ui.editingNode){const ta=$('#nodeEdit');commitNodeEdit(ta?ta.value:(byF(ui.editingNode)?.text||''));}
+}
+function deleteEvent(id){const ev=byEv(id);if(!ev)return;const used=S.factors.some(f=>f.eventId===id);const go_=()=>mutate(()=>{S.events=S.events.filter(e=>e.id!==id);renumberProblems();});if(ev.text||used){confirmDlg(`この付箋を削除しますか？\n「${ev.text}」${used?'\n※ 背後要因図で使用されています（図のノードは残ります）':''}`,{okLabel:'削除',danger:true}).then(ok=>ok&&go_());}else go_();}
+function deleteRow(id){const n=S.events.filter(e=>e.rowId===id).length;const go_=()=>mutate(()=>{S.rows=S.rows.filter(r=>r.id!==id);S.events=S.events.filter(e=>e.rowId!==id);renumberProblems();});if(n)confirmDlg(`この行には付箋が ${n} 枚あります。行ごと削除しますか？`,{okLabel:'削除',danger:true}).then(ok=>ok&&go_());else go_();}
+function deletePerson(id){const n=S.events.filter(e=>e.personId===id).length;if(S.persons.length<=1){alertDlg('登場人物は1人以上必要です。');return;}const go_=()=>mutate(()=>{S.persons=S.persons.filter(p=>p.id!==id);S.events=S.events.filter(e=>e.personId!==id);renumberProblems();});if(n)confirmDlg(`「${personLabel(byPerson(id))}」の列には付箋が ${n} 枚あります。列ごと削除しますか？`,{okLabel:'削除',danger:true}).then(ok=>ok&&go_());else go_();}
+function renumberProblems(){problems().forEach((e,i)=>{e.problemNo=i+1;});if(!S.events.some(e=>e.isFinal))S.events.forEach(e=>{e.isFinal=false;});}
+function toggleProblem(id){mutate(()=>{const ev=byEv(id);if(ev.problemNo){ev.problemNo=null;ev.isFinal=false;renumberProblems();}else{ev.problemNo=problems().length+1;}});}
+function setFinal(id){mutate(()=>{S.events.forEach(e=>{e.isFinal=false;});const ev=byEv(id);if(!ev.problemNo)ev.problemNo=problems().length+1;ev.isFinal=true;});}
+function renderProblemPanel(){
+  const side=h('aside',{class:'side'});
+  const fin=finalEvent();
+  side.append(h('div',{class:'rules'},h('b',{},'手順2 問題点の抽出'),h('ul',{style:'margin:4px 0 0;padding-left:18px'},h('li',{},'エラーの引き金になった出来事に「×」を付けて番号を振ります（付けた順に自動採番）'),h('li',{},'患者への影響が最大の問題点（最終事象）には必ず × を付け、★ を指定します'),h('li',{},'問題点は連鎖していることがあります。以前の問題点も見落とさないように'))));
+  const list=h('ul',{class:'plist'});
+  const ps=problems();
+  if(!ps.length)list.append(h('li',{style:'color:#9ca3af'},'まだ × が付いた付箋はありません'));
+  for(const e of ps){const row=S.rows.find(r=>r.id===e.rowId);const li=h('li',{class:e.isFinal?'final':''},h('span',{class:'no'},`×(${e.problemNo})`),h('div',{class:'body'},h('div',{},e.text||'（未入力）'),h('div',{class:'meta'},`${row?.time||''}　${personLabel(byPerson(e.personId))}`)),e.isFinal?h('span',{class:'star',style:'color:#c62828;font-weight:700'},'★'):btn('★',()=>setFinal(e.id),{class:'mini',title:'最終事象に指定'}));list.append(li);}
+  side.append(h('div',{},h('h3',{},'× 一覧（問題点）'),list));
+  side.append(fin?h('div',{class:'okbox'},`★ 最終事象：${fin.text}`):h('div',{class:'warnbox'},'★ 最終事象が未指定です。指定すると手順3へ進めます。'));
+  side.append(btn('③ 背後要因の探索へ ▶',()=>go('s3'),{class:'primary',disabled:!fin}));
+  return side;
+}
+function nextMark(role){const used=S.persons.filter(p=>p.role===role).map(p=>p.mark);for(const c of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')if(!used.includes(c))return c;return'';}
+function insertPerson(p){const last=S.persons[S.persons.length-1];if(last&&last.role==='その他'&&!THING_ROLES.has(p.role))S.persons.splice(S.persons.length-1,0,p);else S.persons.push(p);return p;}
+function openPersonModal(id){
+  const p=id?byPerson(id):null;
+  const role=h('select',{class:'full'},...ROLES.map(r=>h('option',{value:r},r)));role.value=p?p.role:'看護師';
+  const mark=h('input',{class:'full',value:p?p.mark:nextMark(role.value),maxLength:2,placeholder:'A'});
+  const note=h('input',{class:'full',value:p?(THING_ROLES.has(p.role)?p.name:p.note):'',placeholder:''});
+  const noteLabel=h('label',{});
+  const refresh=()=>{const thing=THING_ROLES.has(role.value);noteLabel.textContent=thing?'名称（例：輸液ポンプ、処方箋）':'補足（例：日勤リーダー、新人）※任意';mark.disabled=thing&&role.value==='その他';if(!p)mark.value=thing?'':nextMark(role.value);};
+  role.addEventListener('change',refresh);refresh();
+  if(p)mark.value=p.mark;
+  openModal({title:p?'登場人物の編集':'登場人物の追加',body:h('div',{style:'display:grid;gap:8px'},h('label',{},'役割'),role,h('label',{},'記号（A・B・C…）'),mark,noteLabel,note,h('div',{class:'warnbox',style:'margin:4px 0 0'},'氏名は入力しないでください。表示名は「役割＋記号」で自動生成されます。')),buttons:[{label:'キャンセル'},{label:p?'更新':'追加',primary:true,onClick:()=>{const thing=THING_ROLES.has(role.value);mutate(()=>{if(p){p.role=role.value;p.mark=mark.value.trim();if(thing){p.name=note.value.trim();p.note='';}else{p.note=note.value.trim();p.name='';}}else{insertPerson({id:uid(),role:role.value,mark:mark.value.trim(),note:thing?'':note.value.trim(),name:thing?note.value.trim():'',width:180});}});}}]});
+  setTimeout(()=>role.focus(),0);
+}
+function parsePreload(text){const out=[];for(let l of text.split(/\r?\n/)){l=l.trim();if(!l)continue;const parts=l.split(/\s*[|｜\t]\s*/);if(parts.length>=3)out.push({time:parts[0],person:parts[1],text:parts.slice(2).join(' ')});else if(parts.length===2)out.push({time:'',person:parts[0],text:parts[1]});else out.push({time:'',person:'',text:l});}return out;}
+function findOrCreatePerson(label){
+  label=(label||'').trim();
+  if(!label){let o=S.persons.find(p=>p.role==='その他');if(!o){o={id:uid(),role:'その他',mark:'',note:'',name:'その他（モノ・情報）',width:180};S.persons.push(o);}return o;}
+  let p=S.persons.find(p=>personLabel(p)===label||(p.role+p.mark)===label);if(p)return p;
+  const roles=[...ROLES].sort((a,b)=>b.length-a.length);
+  const role=roles.find(r=>label.startsWith(r));
+  if(role){const rest=label.slice(role.length).trim();const m=/^[A-Za-zＡ-Ｚ]$/.test(rest)?rest.toUpperCase().normalize('NFKC'):'';p=S.persons.find(q=>q.role===role&&q.mark===m&&(m||THING_ROLES.has(role)));if(p)return p;p={id:uid(),role,mark:m||(THING_ROLES.has(role)?'':nextMark(role)),note:(!m&&rest&&!THING_ROLES.has(role))?rest:'',name:THING_ROLES.has(role)?(rest||label):'',width:180};insertPerson(p);return p;}
+  p={id:uid(),role:'その他',mark:'',note:'',name:label,width:180};insertPerson(p);return p;
+}
+function openPreloadModal(){
+  const ta=h('textarea',{class:'full',rows:12,placeholder:'10:20 | 栄養士A | おやつを病棟に上膳した\n10:25 | 看護師A | マッシュポテトを配膳した\n10:40 | 患者A | 顔面に発赤が出現した'});
+  const merge=h('input',{type:'checkbox',checked:true});
+  const cnt=h('span',{class:'note'});
+  ta.addEventListener('input',()=>{cnt.textContent=`${parsePreload(ta.value).length} 件`;});
+  openModal({title:'事前入力（一括流し込み）',width:'640px',body:h('div',{},h('p',{},'1行に1つの出来事を「時刻 | 登場人物 | 内容」の形式で貼り付けてください（区切りは「|」またはタブ）。'),h('p',{class:'note'},'登場人物が未登録なら自動で列を作ります（例：看護師A → 役割「看護師」記号「A」）。取り込んだ付箋には出所「報告書」が付きます。会議では報告書由来の付箋を当事者・関係者と確認するところから始めてください。'),ta,h('div',{style:'display:flex;gap:12px;align-items:center;margin-top:6px'},h('label',{},merge,' 同じ時刻の行は1つの行にまとめる'),cnt)),buttons:[{label:'キャンセル'},{label:'取り込む',primary:true,onClick:()=>{const items=parsePreload(ta.value);if(!items.length){alertDlg('取り込む内容がありません。');return false;}mutate(()=>{let lastTime=null,row=null;const emptyRows=S.rows.filter(r=>!r.time&&!S.events.some(e=>e.rowId===r.id));if(emptyRows.length===S.rows.length)S.rows=[];for(const it of items){const p=findOrCreatePerson(it.person);if(!(merge.checked&&it.time&&it.time===lastTime&&row)){row={id:uid(),time:it.time};S.rows.push(row);}lastTime=it.time;S.events.push({id:uid(),rowId:row.id,personId:p.id,text:it.text,certainty:'事実',source:'報告書',problemNo:null,isFinal:false});}});}}]});
+  setTimeout(()=>ta.focus(),0);
+}
+
+/* ========== tree (step 3) ========== */
+const TREE={W:210,PAD:8,HEAD:16,VGAP:14,HGAP:60,MINH:46};
+function treeFontSize(){return document.body.classList.contains('big')?16:13;}
+function treeFont(){return`${treeFontSize()}px ${FONT_FAMILY}`;}
+let L=new Map();
+const children=id=>S.factors.filter(f=>f.parentId===id);
+const rootFactor=()=>S.factors.find(f=>!f.parentId)||null;
+function cushionText(n){const p=n.personId?byPerson(n.personId):null;return`${p?personLabel(p):'当事者'}が正しいと判断した`;}
+function layoutTree(){
+  L=new Map();const root=rootFactor();if(!root)return{w:0,h:0};
+  const font=treeFont(),fs=treeFontSize(),LH=Math.round(fs*1.5);
+  const measure=n=>{const lines=wrapText(n.text||'（未入力）',TREE.W-2*TREE.PAD,font);const badges=!!(n.actionable||n.otherActor);const hh=Math.max(TREE.MINH,TREE.HEAD+lines.length*LH+(badges?15:0)+2*TREE.PAD);const o={id:n.id,lines,h:hh,LH,badges};L.set(n.id,o);return o;};
+  const sub=n=>{const o=measure(n);const kids=children(n.id);if(!kids.length){o.sub=o.h;return o.sub;}let s=0;kids.forEach((k,i)=>{s+=sub(k);if(i)s+=TREE.VGAP;});o.sub=Math.max(o.h,s);return o.sub;};
+  let maxDepth=0;
+  const place=(n,x,y,d)=>{const o=L.get(n.id);maxDepth=Math.max(maxDepth,d);o.x=x;o.y=y+(o.sub-o.h)/2;const kids=children(n.id);const total=kids.reduce((a,k,i)=>a+L.get(k.id).sub+(i?TREE.VGAP:0),0);let cy=y+(o.sub-total)/2;kids.forEach(k=>{place(k,x+TREE.W+TREE.HGAP,cy,d+1);cy+=L.get(k.id).sub+TREE.VGAP;});};
+  sub(root);place(root,0,0,0);
+  return{w:(maxDepth+1)*TREE.W+maxDepth*TREE.HGAP,h:L.get(root.id).sub};
+}
+function drawTree(svg,{interactive=true}={}){
+  const g=svgEl('g',{class:'tree-g','font-family':FONT_FAMILY});
+  g.append(svgEl('defs',{},svgEl('marker',{id:'arrowhead',viewBox:'0 0 10 10',refX:'9',refY:'5',markerWidth:'7',markerHeight:'7',orient:'auto'},svgEl('path',{d:'M0,0 L10,5 L0,10 z',fill:'#444'}))));
+  const fs=treeFontSize();
+  for(const n of S.factors){const o=L.get(n.id);if(!o||!n.parentId)continue;const p=L.get(n.parentId);if(!p)continue;const x1=o.x,y1=o.y+o.h/2,x2=p.x+TREE.W,y2=p.y+p.h/2,mx=x1-TREE.HGAP/2;g.append(svgEl('path',{d:`M${x1},${y1} H${mx} V${y2} H${x2+1}`,fill:'none',stroke:'#444','stroke-width':1.5,'marker-end':'url(#arrowhead)'}));}
+  for(const n of S.factors){const o=L.get(n.id);if(!o)continue;const isRoot=!n.parentId;const st=isRoot?NODE_STYLE.problem:(NODE_STYLE[n.type]||NODE_STYLE.state);const sel=interactive&&ui.selectedNode===n.id;
+    const ng=svgEl('g',{class:'node'+(sel?' sel':''),'data-id':n.id,transform:`translate(${o.x},${o.y})`});
+    ng.append(svgEl('rect',{width:TREE.W,height:o.h,rx:6,ry:6,fill:st.fill,stroke:sel?'#ff9800':st.stroke,'stroke-width':sel?3:(isRoot?2:1.5),'stroke-dasharray':n.type==='cushion'?null:null}));
+    const label=isRoot?(S.mode==='QuickSAFER'?'分析対象行為':'最終事象'+(n.type==='action'?'・行動':n.type==='judge'?'・判断':'')):st.label;
+    ng.append(svgEl('text',{x:TREE.PAD,y:TREE.PAD+9,'font-size':10,fill:'#555'},label));
+    if(n.pmshell){const pm=PMSHELL.find(q=>q.key===n.pmshell);if(pm){const tw=pm.short.length*8+12;ng.append(svgEl('rect',{x:TREE.W-TREE.PAD-tw,y:4,width:tw,height:14,rx:7,fill:pm.color}));ng.append(svgEl('text',{x:TREE.W-TREE.PAD-tw/2,y:14.5,'font-size':10,fill:'#fff','text-anchor':'middle','font-weight':'bold'},pm.short));}}
+    const t=svgEl('text',{x:TREE.PAD,y:TREE.PAD+TREE.HEAD+fs-1,'font-size':fs,fill:n.text?'#111':'#9ca3af'});
+    o.lines.forEach((ln,i)=>t.append(svgEl('tspan',{x:TREE.PAD,dy:i?o.LH:0},ln||' ')));
+    ng.append(t);
+    if(o.badges){let bx=TREE.PAD;const by=o.h-TREE.PAD-2;if(n.actionable){ng.append(svgEl('text',{x:bx,y:by,'font-size':10,fill:'#2e7d32','font-weight':'bold'},'✓ 院内で対策できる'));bx+=108;}if(n.otherActor){ng.append(svgEl('text',{x:bx,y:by,'font-size':10,fill:'#e65100','font-weight':'bold'},'⇢ 別の当事者の行動'));}}
+    g.append(ng);
+  }
+  svg.append(g);
+}
+function ensureRoot(fin){let root=rootFactor();if(root&&!root.eventId&&root.type==='action'&&root.eventId!==fin.id){const nr={id:uid(),parentId:null,type:'state',text:fin.text,pmshell:null,actionable:false,otherActor:false,eventId:fin.id,personId:fin.personId};root.parentId=nr.id;S.factors.unshift(nr);root=nr;ui.vb=null;markDirty();}
+  if(!root){root={id:uid(),parentId:null,type:'state',text:fin.text,pmshell:null,actionable:false,otherActor:false,eventId:fin.id,personId:fin.personId};S.factors.push(root);markDirty();}return root;}
+function renderTree(){
+  const main=$('#main');const fin=finalEvent();
+  if(!fin){main.append(h('div',{class:'view'},h('div',{class:'empty'},h('p',{},'最終事象（★）が指定されていません。手順2で「患者への影響が最大の問題点」に ★ を付けてください。'),btn('② 問題点の抽出へ',()=>go('s2'),{class:'primary'}))));return;}
+  const root=ensureRoot(fin);
+  const view=h('div',{class:'view'});
+  const tb=h('div',{class:'toolbar'},
+    btn('＋ 要因を追加',()=>{if(ui.selectedNode)addFactor(ui.selectedNode);else alertDlg('先にノードを選択してください。');},{class:'primary'}),
+    h('span',{class:'sep'}),
+    btn('－',()=>zoomTree(1.2),{title:'縮小'}),btn('＋',()=>zoomTree(1/1.2),{title:'拡大'}),btn('全体表示',()=>{ui.vb=null;redrawTree();}),
+    h('span',{class:'hint'},'ノードをクリックで選択、ダブルクリックで編集。Enter＝要因を追加／F2＝編集／Delete＝削除。背景ドラッグで移動、ホイールで拡大縮小。'));
+  const area=h('div',{class:'tree-area',id:'treeArea'});
+  const svg=svgEl('svg',{id:'treeSvg',preserveAspectRatio:'xMinYMin meet'});
+  const overlay=h('div',{id:'treeOverlay'});
+  area.append(svg,overlay);
+  view.append(tb);
+  if(root.eventId!==fin.id)view.append(h('div',{class:'banner'},'⚠ 最終事象（★）が手順2で変更されています。',btn('起点を更新',()=>mutate(()=>{root.text=fin.text;root.eventId=fin.id;root.personId=fin.personId;}),{class:'mini primary'})));
+  view.append(area);
+  main.append(view,h('aside',{class:'side',id:'treeSide'}));
+  setupTreeInteractions(svg,area);
+  redrawTree();
+}
+function currentVB(){const area=$('#treeArea');if(!area)return null;const cw=Math.max(1,area.clientWidth),ch=Math.max(1,area.clientHeight);if(!ui.vb){const lay=layoutTree();const m=30;const w=lay.w+2*m,hh=lay.h+2*m;let vw=w,vh=w*ch/cw;if(vh<hh){vh=hh;vw=hh*cw/ch;}const maxScale=1.25;if(cw/vw>maxScale){vw=cw/maxScale;vh=vw*ch/cw;}ui.vb={x:-m-(vw-w)/2,y:-m-(vh-hh)/2,w:vw,h:vh};}else{ui.vb.h=ui.vb.w*ch/cw;}return ui.vb;}
+function revealNode(id){const o=L.get(id);const vb=currentVB();if(!o||!vb)return;const m=24;if(TREE.W+2*m>vb.w||o.h+2*m>vb.h){ui.vb=null;currentVB();return;}if(o.x-m<vb.x)vb.x=o.x-m;if(o.x+TREE.W+m>vb.x+vb.w)vb.x=o.x+TREE.W+m-vb.w;if(o.y-m<vb.y)vb.y=o.y-m;if(o.y+o.h+m>vb.y+vb.h)vb.y=o.y+o.h+m-vb.h;}
+function treeScale(){const area=$('#treeArea');const vb=currentVB();return area.clientWidth/vb.w;}
+function toScreen(px,py){const vb=currentVB();const s=treeScale();return{x:(px-vb.x)*s,y:(py-vb.y)*s,s};}
+function redrawTree(){
+  const svg=$('#treeSvg');if(!svg)return;
+  layoutTree();
+  if(ui.pendingReveal){revealNode(ui.pendingReveal);ui.pendingReveal=null;}
+  const vb=currentVB();svg.setAttribute('viewBox',`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+  svg.innerHTML='';
+  svg.append(svgEl('rect',{class:'bg',x:vb.x-1e5,y:vb.y-1e5,width:2e5,height:2e5,fill:'transparent'}));
+  drawTree(svg,{interactive:true});
+  renderTreeOverlay();renderTreeSide();renderShell();
+}
+function zoomTree(f){const vb=currentVB();const cx=vb.x+vb.w/2,cy=vb.y+vb.h/2;vb.w*=f;vb.h*=f;vb.x=cx-vb.w/2;vb.y=cy-vb.h/2;redrawTree();}
+function nodeAt(px,py){for(const [id,o] of L){if(px>=o.x&&px<=o.x+TREE.W&&py>=o.y&&py<=o.y+o.h)return id;}return null;}
+let pan=null;
+window.addEventListener('mousemove',e=>{if(!pan)return;const s=treeScale();const dx=(e.clientX-pan.sx)/s,dy=(e.clientY-pan.sy)/s;if(Math.abs(dx)+Math.abs(dy)>2)pan.moved=true;ui.vb.x=pan.vx-dx;ui.vb.y=pan.vy-dy;const svg=$('#treeSvg');if(svg){svg.setAttribute('viewBox',`${ui.vb.x} ${ui.vb.y} ${ui.vb.w} ${ui.vb.h}`);renderTreeOverlay();}});
+window.addEventListener('mouseup',()=>{if(!pan)return;if(!pan.moved&&ui.selectedNode){ui.selectedNode=null;redrawTree();}pan=null;});
+window.addEventListener('resize',()=>{if($('#treeSvg'))redrawTree();});
+function setupTreeInteractions(svg,area){
+  const toDiagram=e=>{const r=area.getBoundingClientRect();const vb=currentVB();const s=treeScale();return{x:vb.x+(e.clientX-r.left)/s,y:vb.y+(e.clientY-r.top)/s};};
+  svg.addEventListener('mousedown',e=>{
+    if(e.button!==0)return;
+    const g=e.target.closest&&e.target.closest('g.node');
+    if(g){const id=g.getAttribute('data-id');e.preventDefault();flushEdits();if(e.detail>=2){startNodeEdit(id);return;}if(ui.selectedNode!==id){ui.selectedNode=id;redrawTree();}return;}
+    e.preventDefault();flushEdits();
+    pan={sx:e.clientX,sy:e.clientY,vx:currentVB().x,vy:currentVB().y,moved:false};
+  });
+  svg.addEventListener('wheel',e=>{if(ui.step==='quick'&&!e.ctrlKey)return;e.preventDefault();const vb=currentVB();const r=area.getBoundingClientRect();const fx=(e.clientX-r.left)/area.clientWidth,fy=(e.clientY-r.top)/area.clientHeight;const px=vb.x+fx*vb.w,py=vb.y+fy*vb.h;const f=e.deltaY<0?1/1.15:1.15;vb.w*=f;vb.h*=f;vb.x=px-fx*vb.w;vb.y=py-fy*vb.h;redrawTree();},{passive:false});
+  let lastDrop=null;
+  svg.addEventListener('dragover',e=>{if(![...e.dataTransfer.types].includes('text/plain'))return;e.preventDefault();const p=toDiagram(e);const id=nodeAt(p.x,p.y);if(id!==lastDrop){$$('g.node.drop',svg).forEach(x=>x.classList.remove('drop'));if(id){const g=$(`g.node[data-id="${id}"]`,svg);g&&g.classList.add('drop');}lastDrop=id;}e.dataTransfer.dropEffect=id?'copy':'none';});
+  svg.addEventListener('dragleave',()=>{$$('g.node.drop',svg).forEach(x=>x.classList.remove('drop'));lastDrop=null;});
+  svg.addEventListener('drop',e=>{e.preventDefault();$$('g.node.drop',svg).forEach(x=>x.classList.remove('drop'));const d=e.dataTransfer.getData('text/plain');if(!d.startsWith('ev:'))return;const p=toDiagram(e);const id=nodeAt(p.x,p.y);if(!id)return;addProblemUnder(id,d.slice(3));});
+}
+function addProblemUnder(parentId,evId){const ev=byEv(evId);if(!ev)return;if(ev.isFinal){alertDlg('最終事象（★）は起点なので要因には追加できません。');return;}addFactor(parentId,{type:'action',text:ev.text,eventId:ev.id,personId:ev.personId},{edit:false});}
+function addFactor(parentId,init={},{edit=true}={}){
+  flushEdits();
+  const parent=byF(parentId);if(!parent)return null;
+  if(S.mode==='QuickSAFER'&&parent.otherActor){alertDlg('QuickSAFER では「別の当事者の行動」に達したらそこで止めます。その行動を分析したい場合は、別の QuickSAFER として分析するか、ImSAFER に格上げしてください。');return null;}
+  const snap=snapshot();
+  let realParent=parent;
+  if(parent.type==='action'||parent.type==='judge'){let c=children(parent.id).find(k=>k.type==='cushion');if(!c){c={id:uid(),parentId:parent.id,type:'cushion',text:cushionText(parent),pmshell:null,actionable:false,otherActor:false,eventId:null,personId:parent.personId||null};S.factors.push(c);}realParent=c;}
+  const n={id:uid(),parentId:realParent.id,type:init.type||'state',text:init.text||'',pmshell:init.pmshell||null,actionable:false,otherActor:false,eventId:init.eventId||null,personId:init.personId||null};
+  S.factors.push(n);ui.selectedNode=n.id;ui.pendingReveal=n.id;
+  if(edit&&!n.text){ui.editSnapshot=snap;ui.editingNode=n.id;ui.editingNodeIsNew=true;ui.dirty=true;scheduleDraft();redrawTree();}
+  else{pushHistory(snap);afterChange();}
+  return n;
+}
+function addSibling(id){const n=byF(id);if(!n||!n.parentId)return;if(n.type==='cushion'){alertDlg('「正しいと判断した」と並列の要因は追加できません。行動・判断の要因はこのノードの下に置きます。');return;}const p=byF(n.parentId);addFactor(p.type==='cushion'?p.id:p.id);}
+function startNodeEdit(id){const n=byF(id);if(!n)return;ui.editSnapshot=snapshot();ui.editingNode=id;ui.editingNodeIsNew=false;ui.selectedNode=id;redrawTree();}
+function cancelNodeEdit(){if(ui.editingNodeIsNew&&ui.editSnapshot){S=JSON.parse(ui.editSnapshot);ui.selectedNode=null;}ui.editingNode=null;ui.editingNodeIsNew=false;ui.editSnapshot=null;redrawTree();}
+function commitNodeEdit(text){
+  const id=ui.editingNode;if(!id)return;const n=byF(id);const snap=ui.editSnapshot,isNew=ui.editingNodeIsNew;
+  ui.editingNode=null;ui.editingNodeIsNew=false;ui.editSnapshot=null;
+  const trimmed=(text||'').trim();
+  if(!n){redrawTree();return;}
+  if(isNew&&!trimmed){S=JSON.parse(snap);ui.selectedNode=null;redrawTree();return;}
+  if(trimmed!==n.text||isNew){pushHistory(snap);n.text=trimmed;ui.dirty=true;S.updatedAt=new Date().toISOString();scheduleDraft();}
+  redrawTree();
+}
+function deleteNode(id){const n=byF(id);if(!n)return;if(!n.parentId){alertDlg('起点（最終事象）は削除できません。');return;}if(n.type==='cushion'){alertDlg('「正しいと判断した」は削除できません。親ノードの種別を「状態・状況」に変えると外れます。');return;}const desc=subtreeIds(id);const go_=()=>mutate(()=>{S.factors=S.factors.filter(f=>!desc.has(f.id));ui.selectedNode=n.parentId;});if(desc.size>1)confirmDlg(`このノードと下位の要因 ${desc.size-1} 件をまとめて削除しますか？`,{okLabel:'削除',danger:true}).then(ok=>ok&&go_());else go_();}
+function subtreeIds(id){const set=new Set([id]);let grew=true;while(grew){grew=false;for(const f of S.factors){if(!set.has(f.id)&&set.has(f.parentId)){set.add(f.id);grew=true;}}}return set;}
+function setNodeType(id,type){const n=byF(id);if(!n||n.type===type||n.type==='cushion')return;mutate(()=>{const kids=children(id);const cushion=kids.find(k=>k.type==='cushion');if(type==='action'||type==='judge'){n.type=type;if(!cushion){const c={id:uid(),parentId:id,type:'cushion',text:cushionText(n),pmshell:null,actionable:false,otherActor:false,eventId:null,personId:n.personId||null};kids.forEach(k=>{k.parentId=c.id;});const idx=S.factors.indexOf(n);S.factors.splice(idx+1,0,c);}}else{if(cushion){children(cushion.id).forEach(k=>{k.parentId=id;});S.factors=S.factors.filter(f=>f.id!==cushion.id);}n.type=type;n.otherActor=false;}});}
+function moveNode(id,dir){const n=byF(id);if(!n||!n.parentId)return;const sibs=children(n.parentId);const i=sibs.indexOf(n);const j=i+dir;if(j<0||j>=sibs.length)return;mutate(()=>{const a=S.factors.indexOf(sibs[i]),b=S.factors.indexOf(sibs[j]);[S.factors[a],S.factors[b]]=[S.factors[b],S.factors[a]];});}
+function renderTreeOverlay(){
+  const ov=$('#treeOverlay');if(!ov)return;ov.innerHTML='';
+  const area=$('#treeArea');
+  if(ui.editingNode){const o=L.get(ui.editingNode);const n=byF(ui.editingNode);if(!o||!n)return;const sp=toScreen(o.x,o.y+TREE.HEAD);const ta=h('textarea',{id:'nodeEdit',value:n.text,placeholder:'要因を入力',style:`left:${sp.x}px;top:${sp.y}px;width:${TREE.W*sp.s}px;min-height:${Math.max(40,(o.h-TREE.HEAD)*sp.s)}px;font-size:${treeFontSize()*sp.s}px`});ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();commitNodeEdit(ta.value);}else if(e.key==='Escape'){e.preventDefault();cancelNodeEdit();}});ta.addEventListener('blur',()=>{if(ui.editingNode===n.id)commitNodeEdit(ta.value);});ov.append(ta);setTimeout(()=>{ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);},0);return;}
+  if(ui.selectedNode){const o=L.get(ui.selectedNode);const n=byF(ui.selectedNode);if(!o||!n)return;const isRoot=!n.parentId,isCushion=n.type==='cushion';
+    const tool=h('div',{class:'ntool'});
+    tool.append(btn('＋要因',()=>addFactor(n.id),{class:'primary',title:'このノードの下に要因を追加（Enter）'}));
+    if(!isRoot&&!isCushion)tool.append(btn('＋並列',()=>addSibling(n.id),{title:'同じ階層に要因を追加（Shift+Enter）'}));
+    tool.append(btn('編集',()=>startNodeEdit(n.id),{title:'文言を編集（F2 / ダブルクリック）'}));
+    if(!isCushion){const sel=h('select',{title:'種別',onchange:e=>setNodeType(n.id,e.target.value)},...TYPE_OPTIONS.map(([v,l])=>h('option',{value:v},l)));sel.value=n.type;tool.append(h('label',{},'種別',sel));
+      if(n.type==='action'||n.type==='judge'){const ps=h('select',{title:'誰の行動・判断か（「正しいと判断した」の主語になります）',onchange:e=>setNodePerson(n.id,e.target.value||null)},h('option',{value:''},'当事者：未指定'),...S.persons.filter(p=>!THING_ROLES.has(p.role)).map(p=>h('option',{value:p.id},personLabel(p))));ps.value=n.personId||'';tool.append(ps);}}
+    if(!isRoot&&!isCushion){const sel=h('select',{title:'P-mSHELL',onchange:e=>mutate(()=>{n.pmshell=e.target.value||null;})},h('option',{value:''},'P-mSHELL：なし'),...PMSHELL.map(p=>h('option',{value:p.key},p.label)));sel.value=n.pmshell||'';tool.append(sel);
+      tool.append(h('label',{title:'この要因は院内で対策が打てるレベル（これ以上遡らない）'},h('input',{type:'checkbox',checked:n.actionable,onchange:e=>mutate(()=>{n.actionable=e.target.checked;})}),'院内で対策できる'));
+      if(n.type==='action'||n.type==='judge')tool.append(h('label',{title:'別の当事者の行動に達した（ImSAFERではここから分岐して分析）'},h('input',{type:'checkbox',checked:n.otherActor,onchange:e=>mutate(()=>{n.otherActor=e.target.checked;})}),'別の当事者の行動'));
+      tool.append(btn('▲',()=>moveNode(n.id,-1),{title:'上へ'}),btn('▼',()=>moveNode(n.id,1),{title:'下へ'}));
+      tool.append(btn('削除',()=>deleteNode(n.id),{class:'danger',title:'削除（Delete）'}));}
+    const sp=toScreen(o.x,o.y);
+    tool.style.left=Math.max(4,Math.min(sp.x,area.clientWidth-540))+'px';tool.style.top='0px';
+    ov.append(tool);
+    const th=tool.offsetHeight||40;let top=sp.y-th-8;if(top<4)top=sp.y+o.h*sp.s+8;tool.style.top=top+'px';}
+}
+function setNodePerson(id,personId){const n=byF(id);if(!n)return;mutate(()=>{const cushion=children(id).find(k=>k.type==='cushion');const wasAuto=cushion&&cushion.text===cushionText(n);n.personId=personId;if(cushion&&wasAuto){cushion.text=cushionText(n);cushion.personId=personId;}});}
+function renderTreeSide(){
+  const side=$('#treeSide');if(!side)return;side.innerHTML='';
+  if(S.mode==='QuickSAFER'){renderQuickTreeSide(side);return;}
+  side.append(h('div',{class:'rules'},h('b',{},'手順3 背後要因の探索'),h('ul',{style:'margin:4px 0 0;padding-left:18px'},h('li',{},'起点は最終事象（患者への害）。「間違えた」ではなく「なぜ正しいと判断したか」を問う'),h('li',{},'行動・判断の下には「正しいと判断した」が自動で入ります'),h('li',{},'要因は横に広げて複数挙げる。P-mSHELL で抜けを確認'),h('li',{},'「院内で対策できる」レベルで止める（国の制度や性格まで遡らない）'))));
+  const used=new Set(S.factors.map(f=>f.eventId).filter(Boolean));
+  const list=h('ul',{class:'plist'});
+  for(const e of problems()){if(e.isFinal)continue;const li=h('li',{class:used.has(e.id)?'used':'',draggable:true},h('span',{class:'no'},`×(${e.problemNo})`),h('div',{class:'body'},h('div',{},e.text),h('div',{class:'meta'},personLabel(byPerson(e.personId))+(used.has(e.id)?'　（図で使用中）':''))),btn('＋',()=>{if(!ui.selectedNode){alertDlg('追加先のノードを選択してください。');return;}addProblemUnder(ui.selectedNode,e.id);},{class:'mini',title:'選択中のノードの下に要因として追加'}));li.addEventListener('dragstart',ev=>{flushEdits();ev.dataTransfer.setData('text/plain','ev:'+e.id);ev.dataTransfer.effectAllowed='copy';});list.append(li);}
+  if(!list.children.length)list.append(h('li',{style:'color:#9ca3af'},'他の問題点（×）はありません'));
+  side.append(h('div',{},h('h3',{},'× 一覧（要因に転用）'),h('p',{class:'note',style:'margin:0 0 6px'},'図のノードへドラッグ、または「＋」で選択中のノードの下に追加'),list));
+  const counts={};S.factors.forEach(f=>{if(f.pmshell)counts[f.pmshell]=(counts[f.pmshell]||0)+1;});
+  side.append(h('div',{},h('h3',{},'P-mSHELL の使用状況'),h('div',{class:'chips'},...PMSHELL.map(p=>h('span',{class:'chip'+(counts[p.key]?'':' unused'),style:`background:${p.color}`,title:p.label},`${p.label.split(' ')[0]} ${counts[p.key]||0}`))),h('p',{class:'note',style:'margin:6px 0 0'},'点線のチップ＝未使用。その要素の視点で見落としがないか確認してください。')));
+  const n=S.factors.filter(f=>f.parentId&&f.type!=='cushion').length,a=S.factors.filter(f=>f.actionable).length;
+  side.append(h('div',{class:'note'},`要因 ${n} 件／院内で対策できる ${a} 件`));
+}
+
+/* ========== steps 4-7 ========== */
+function guideInfo(no){return GUIDE.find(g=>g.no===+no)||null;}
+function stepLabel(no){const g=guideInfo(no);return g?`${STEP4M[g.step]}（${g.step==='I'||g.step==='II'?'発生防止':'拡大防止'}）`:'';}
+function analysisFactors(){const root=rootFactor();if(!root)return[];const out=[];const walk=id=>{for(const k of children(id)){if(k.type!=='cushion')out.push(k);walk(k.id);}};walk(root.id);return out;}
+function factorLabel(id){const f=byF(id);return f?f.text:'（要因なし）';}
+const ATTN_RE=/注意|徹底|周知|意識|気を?付け|再確認|指導|呼びかけ|心がけ/;
+function measuresOf(factorId){return S.measures.filter(m=>factorId?m.factorId===factorId:(!m.factorId||!byF(m.factorId)));}
+function addMeasure(factorId){const m=newMeasure(factorId);ui.focusKey='m-'+m.id;mutate(()=>{S.measures.push(m);});}
+function measureRow(m){
+  const row=h('div',{class:'mrow'});
+  row.append(ta(()=>m.text,v=>{m.text=v;},{placeholder:'対策案（何を・どう変えるか。具体的に）',class:'full',dataset:{fk:'m-'+m.id}},()=>render()));
+  row.append(sel(()=>m.guide||'',v=>{m.guide=v?+v:null;},[['','GUIDE：未分類'],...GUIDE.map(x=>[x.no,`${x.no}. ${x.label}`])]));
+  row.append(h('span',{class:'steplab'},stepLabel(m.guide)));
+  row.append(btn('🗑',()=>mutate(()=>{S.measures=S.measures.filter(x=>x.id!==m.id);}),{class:'mini',title:'削除'}));
+  if(ATTN_RE.test(m.text||''))row.append(h('div',{class:'mhint'},'注意喚起・教育だけの対策は単独では効果が弱いとされます。GUIDE 1〜4（やめる／できないようにする／わかりやすく／やりやすく）の対策と組み合わせられないか検討してください。'));
+  return row;
+}
+function factorGroup(f){
+  const pm=f&&PMSHELL.find(p=>p.key===f.pmshell);const ms=f?measuresOf(f.id):measuresOf(null);
+  const head=h('div',{class:'fg-head'},pm?h('span',{class:'chip',style:`background:${pm.color}`},pm.short):null,h('span',{class:'fg-text'},f?(f.text||'（未入力の要因）'):'要因に紐づかない対策案'),f&&f.actionable?h('span',{class:'badge ok'},'✓ 院内で対策できる'):null,f&&f.otherActor?h('span',{class:'badge warn'},'別の当事者の行動'):null,btn('＋ 対策案',()=>addMeasure(f?f.id:null),{class:'mini primary'}));
+  const box=h('div',{class:'fg'},head);
+  if(!ms.length)box.append(h('div',{class:'note',style:'padding:6px 10px'},'対策案はまだありません'));
+  for(const m of ms)box.append(measureRow(m));
+  return box;
+}
+function guideStats(){const c={I:0,II:0,III:0,IV:0,none:0};for(const m of S.measures){const g=guideInfo(m.guide);if(g)c[g.step]++;else c.none++;}return c;}
+function renderGuideSide(){
+  const side=h('aside',{class:'side'});
+  const c=guideStats();const total=S.measures.length;
+  const warns=[];
+  if(total&&!S.measures.some(m=>m.guide&&m.guide<=4))warns.push('システム・環境を変える対策（GUIDE 1〜4）がまだありません。「注意する」「教育する」に頼らない対策を1つ以上検討してください。');
+  if(total&&c.none)warns.push(`GUIDE 未分類の対策案が ${c.none} 件あります。`);
+  side.append(h('div',{class:'rules'},h('b',{},'対策発想の考え方'),h('ul',{style:'margin:4px 0 0;padding-left:18px'},h('li',{},'背後要因ごとに「その要因をなくす・弱める・遮る」対策を、実現性はいったん置いて幅広く挙げる'),h('li',{},'番号が小さい対策ほど人に頼らず効果が大きい（上流対策）'),h('li',{},'発生防止（STEP I・II）と拡大防止（STEP III・IV）の両方を考える'))));
+  side.append(h('div',{},h('h3',{},'4STEP/M 分布'),h('div',{class:'dist'},...['I','II','III','IV'].map(k=>h('div',{title:STEP4M[k]},h('b',{},c[k]),`STEP ${k}`)))));
+  for(const w of warns)side.append(h('div',{class:'warnbox',style:'margin:0'},w));
+  side.append(h('div',{},h('h3',{},'GUIDE 11段階 早見表'),h('table',{class:'guide-tbl'},...GUIDE.map(g=>h('tr',{},h('td',{class:'no'},`${g.no}`),h('td',{},h('b',{},g.label),h('div',{class:'note'},`STEP ${g.step}　${g.ex}`)))))));
+  return side;
+}
+function renderS4(){
+  const main=$('#main');const view=h('div',{class:'view'});
+  view.append(h('div',{class:'toolbar'},btn('＋ 要因に紐づかない対策案',()=>addMeasure(null)),h('span',{class:'hint'},'要因ごとに「＋ 対策案」で追加し、GUIDE の段階を選びます。Enter で確定、Shift+Enter で改行。')));
+  const scroll=h('div',{class:'scroll'});
+  const facs=analysisFactors();
+  if(!facs.length)scroll.append(h('div',{class:'empty',style:'margin:40px auto'},h('p',{},'背後要因がまだありません。手順3で要因を挙げてから対策を検討します。'),btn('③ 背後要因の探索へ',()=>go('s3'),{class:'primary'})));
+  const sorted=[...facs.filter(f=>f.actionable),...facs.filter(f=>!f.actionable)];
+  for(const f of sorted)scroll.append(factorGroup(f));
+  if(measuresOf(null).length||facs.length)scroll.append(factorGroup(null));
+  view.append(scroll);main.append(view,renderGuideSide());
+}
+function measureOrder(){const facs=analysisFactors();const order=[...facs.filter(f=>f.actionable),...facs.filter(f=>!f.actionable)].map(f=>f.id);return [...S.measures].sort((a,b)=>{const ia=a.factorId?order.indexOf(a.factorId):order.length,ib=b.factorId?order.indexOf(b.factorId):order.length;return ia-ib;});}
+function ratingSel(get,set,title){return sel(get,set,RATINGS,{title});}
+function renderS5(){
+  const main=$('#main');const view=h('div',{class:'view'});
+  const adopted=S.measures.filter(m=>m.decision==='採用').length;
+  view.append(h('div',{class:'toolbar'},h('span',{},`対策案 ${S.measures.length} 件／採用 ${adopted} 件`),h('span',{class:'hint'},'効果：◎大 ○中 △小　実現性：◎すぐできる ○調整が必要 △困難　コスト：◎ほぼ不要 ○要 △大　副作用：◎なし ○小 △大')));
+  const scroll=h('div',{class:'scroll'});
+  if(!S.measures.length){scroll.append(h('div',{class:'empty',style:'margin:40px auto'},h('p',{},'対策案がありません。手順4で列挙してください。'),btn('④ 対策案の列挙へ',()=>go('s4'),{class:'primary'})));}
+  else{
+    const tbl=h('table',{class:'dt'},h('tr',{},h('th',{},'対策案'),h('th',{},'対象要因'),h('th',{},'GUIDE / 4STEP/M'),h('th',{},'効果'),h('th',{},'実現性'),h('th',{},'コスト'),h('th',{},'副作用'),h('th',{},'採否'),h('th',{},'備考')));
+    for(const m of measureOrder()){const g=guideInfo(m.guide);
+      tbl.append(h('tr',{class:'dec-'+(m.decision||'none')},h('td',{class:'ro',style:'min-width:220px'},m.text||'（未入力）'),h('td',{class:'ro',style:'min-width:160px'},m.factorId?factorLabel(m.factorId):'－'),h('td',{class:'ro'},g?`${g.no}. ${g.label}`:'未分類',h('div',{class:'note'},stepLabel(m.guide))),
+        h('td',{},ratingSel(()=>m.eval.effect,v=>{m.eval.effect=v;})),h('td',{},ratingSel(()=>m.eval.feas,v=>{m.eval.feas=v;})),h('td',{},ratingSel(()=>m.eval.cost,v=>{m.eval.cost=v;})),h('td',{},ratingSel(()=>m.eval.side,v=>{m.eval.side=v;})),
+        h('td',{},sel(()=>m.decision,v=>{m.decision=v;},DECISIONS)),h('td',{style:'min-width:160px'},txt(()=>m.note,v=>{m.note=v;}))));}
+    scroll.append(tbl);
+    if(adopted&&!S.measures.some(m=>m.decision==='採用'&&m.guide&&m.guide<=4))scroll.append(h('div',{class:'warnbox'},'採用した対策に GUIDE 1〜4（システム・環境を変える対策）が含まれていません。短期の対策と、仕組みを変える中長期の対策を組み合わせることを検討してください。'));
+  }
+  view.append(scroll);main.append(view);
+}
+function adoptedMeasures(){return measureOrder().filter(m=>m.decision==='採用');}
+function renderS6(){
+  const main=$('#main');const view=h('div',{class:'view'});
+  view.append(h('div',{class:'toolbar'},h('span',{},'採用した対策の実施計画'),h('span',{class:'hint'},'誰が・いつまでに・どのように実施するかを決め、実施されたかを確認します。')));
+  const scroll=h('div',{class:'scroll'});const ms=adoptedMeasures();
+  if(!ms.length)scroll.append(h('div',{class:'empty',style:'margin:40px auto'},h('p',{},'「採用」にした対策がありません。手順5で採否を決めてください。'),btn('⑤ 対策の決定へ',()=>go('s5'),{class:'primary'})));
+  else{const tbl=h('table',{class:'dt'},h('tr',{},h('th',{},'対策'),h('th',{},'担当（職種・部署）'),h('th',{},'期限'),h('th',{},'方法・手順'),h('th',{},'実施確認日'),h('th',{},'状況')));
+    for(const m of ms)tbl.append(h('tr',{},h('td',{class:'ro',style:'min-width:220px'},m.text),h('td',{style:'min-width:140px'},txt(()=>m.owner,v=>{m.owner=v;})),h('td',{},txt(()=>m.due,v=>{m.due=v;},{type:'date'})),h('td',{style:'min-width:240px'},ta(()=>m.method,v=>{m.method=v;},{placeholder:'マニュアル改訂→周知→試行→本運用 など'})),h('td',{},txt(()=>m.done,v=>{m.done=v;},{type:'date'})),h('td',{},sel(()=>m.status,v=>{m.status=v;},STATUSES))));
+    scroll.append(tbl);}
+  view.append(scroll);main.append(view);
+}
+function renderS7(){
+  const main=$('#main');const view=h('div',{class:'view'});
+  view.append(h('div',{class:'toolbar'},h('span',{},'実施した対策の評価'),h('span',{class:'hint'},'定着しているか、効果があったか、新たな問題が出ていないかを評価し、必要なら手順3〜5に戻ります。')));
+  const scroll=h('div',{class:'scroll'});const ms=adoptedMeasures();
+  if(!ms.length)scroll.append(h('div',{class:'empty',style:'margin:40px auto'},h('p',{},'「採用」にした対策がありません。'),btn('⑤ 対策の決定へ',()=>go('s5'),{class:'primary'})));
+  else{const tbl=h('table',{class:'dt'},h('tr',{},h('th',{},'対策'),h('th',{},'状況'),h('th',{},'評価日'),h('th',{},'定着度'),h('th',{},'効果'),h('th',{},'新たな問題・副作用'),h('th',{},'次の対応')));
+    for(const m of ms)tbl.append(h('tr',{},h('td',{class:'ro',style:'min-width:220px'},m.text),h('td',{class:'ro'},m.status),h('td',{},txt(()=>m.reviewDate,v=>{m.reviewDate=v;},{type:'date'})),h('td',{},ratingSel(()=>m.fixation,v=>{m.fixation=v;},'◎守られている ○おおむね △守られていない')),h('td',{},ratingSel(()=>m.effectResult,v=>{m.effectResult=v;},'◎再発なし・改善 ○一部改善 △効果なし')),h('td',{style:'min-width:200px'},ta(()=>m.newIssues,v=>{m.newIssues=v;})),h('td',{style:'min-width:200px'},ta(()=>m.next,v=>{m.next=v;},{placeholder:'継続／修正／中止、再分析 など'}))));
+    scroll.append(tbl);}
+  view.append(scroll);main.append(view);
+}
+
+/* ========== QuickSAFER ========== */
+const ACTION_REASON_RE=/(ので|ため|から|ために)/;
+const ACTION_JUDGE_RE=/(間違|誤っ|誤り|怠|忘れ|しなかった|できなかった|見落と|うっかり|不注意)/;
+function quickRoot(){return rootFactor();}
+function ensureQuickRoot(){if(!S.quick.action)return null;let root=rootFactor();if(!root){root={id:uid(),parentId:null,type:'action',text:S.quick.action,pmshell:null,actionable:false,otherActor:false,eventId:null,personId:S.quick.actor||null};S.factors.push(root);markDirty();}return root;}
+function syncQuickRoot(){const root=rootFactor();if(!root)return;const cushion=children(root.id).find(k=>k.type==='cushion');const wasAuto=cushion&&cushion.text===cushionText(root);root.text=S.quick.action;root.personId=S.quick.actor||null;if(cushion&&wasAuto){cushion.text=cushionText(root);cushion.personId=root.personId;}}
+function upgradeToImSAFER(){confirmDlg('この事例を ImSAFER（多職種による本格分析）に格上げします。\n入力済みの出来事・P-E情報・背後要因・対策はそのまま引き継がれます。時系列事象関連図で問題点（×）と最終事象（★）を指定すると、背後要因図の起点がそこに切り替わります。',{okLabel:'格上げする'}).then(ok=>{if(!ok)return;mutate(()=>{S.mode='ImSAFER';});ui.vb=null;ui.step='basic';render();});}
+function quickEventRow(r){
+  const ev=S.events.find(e=>e.rowId===r.id);
+  const row=h('div',{class:'evrow'});
+  row.append(bindText(h('input',{class:'t',value:r.time||'',placeholder:'時刻'}),v=>{r.time=v;}));
+  const ps=sel(()=>ev?ev.personId:'',v=>{if(ev)ev.personId=v;},S.persons.map(p=>[p.id,personLabel(p)]));
+  row.append(ps);
+  row.append(bindText(h('input',{class:'full',value:ev?ev.text:'',placeholder:'出来事・行動（事実のみ）',dataset:{fk:'ev-'+r.id}}),v=>{if(ev)ev.text=v;}));
+  row.append(h('div',{style:'display:flex;gap:3px'},btn('対象に',()=>{if(!ev)return;mutate(()=>{S.quick.actor=ev.personId;S.quick.action=ev.text;syncQuickRoot();});},{class:'mini',title:'この行動を分析対象行為にする'}),btn('🗑',()=>mutate(()=>{S.rows=S.rows.filter(x=>x.id!==r.id);S.events=S.events.filter(e=>e.rowId!==r.id);}),{class:'mini',title:'削除'})));
+  return row;
+}
+function addQuickEvent(){const r={id:uid(),time:''};const p=S.persons.find(x=>x.role!=='患者'&&!THING_ROLES.has(x.role))||S.persons[0];ui.focusKey='ev-'+r.id;mutate(()=>{S.rows.push(r);S.events.push({id:uid(),rowId:r.id,personId:p.id,text:'',certainty:'事実',source:'報告書',problemNo:null,isFinal:false});});}
+function peItem(it){
+  const row=h('div',{class:'pe-item'});
+  if(it.side==='E')row.append(bindText(h('input',{class:'t',value:it.time||'',placeholder:'時刻'}),v=>{it.time=v;}));
+  else row.append(sel(()=>it.cat||'',v=>{it.cat=v;},[['','分類'],...P_CATS.map(c=>[c,c])]));
+  row.append(bindText(h('input',{class:'full',value:it.text||'',placeholder:it.side==='E'?'周囲の人・モノ・書類・状況':'経験・情報・思い・状態',dataset:{fk:'pe-'+it.id}}),v=>{it.text=v;}));
+  if(it.side==='E')row.append(h('label',{class:'unseen',title:'環境にはあったが当事者が見ていない・聞いていない・認識していなかったもの'},h('input',{type:'checkbox',checked:!!it.unseen,onchange:e=>mutate(()=>{it.unseen=e.target.checked;})}),'認識せず'));
+  else row.append(h('span',{}));
+  row.append(btn('🗑',()=>mutate(()=>{S.quick.pe=S.quick.pe.filter(x=>x.id!==it.id);}),{class:'mini'}));
+  return row;
+}
+function addPE(side){const it={id:uid(),side,time:'',cat:'',text:'',unseen:false};ui.focusKey='pe-'+it.id;mutate(()=>{S.quick.pe.push(it);});}
+function peLabel(it){return it.unseen?`（${it.text}）`:it.text;}
+function ensureQuickEvents(){let changed=false;const p0=S.persons.find(x=>!THING_ROLES.has(x.role))||S.persons[0];for(const r of S.rows){if(!S.events.some(e=>e.rowId===r.id)){S.events.push({id:uid(),rowId:r.id,personId:p0.id,text:'',certainty:'事実',source:'報告書',problemNo:null,isFinal:false});changed=true;}}if(changed)markDirty();}
+function renderQuick(){
+  const main=$('#main');const view=h('div',{class:'view'});ensureQuickEvents();
+  view.append(h('div',{class:'toolbar'},h('b',{},'QuickSAFER（Level I：ワンポイントなぜなぜ分析）'),h('span',{class:'note'},'報告書をもとに、1つのエラー行動に絞って短時間で分析します'),btn('ImSAFER に格上げ',upgradeToImSAFER,{style:'margin-left:auto',title:'多職種による本格分析（時系列事象関連図・Level III）に切り替えます'})));
+  const scroll=h('div',{class:'scroll'});
+  /* 0 basic */
+  const inp=(k,type='text',ph='')=>txt(()=>S[k],v=>{S[k]=v;},{type,placeholder:ph});
+  scroll.append(h('div',{class:'qsec'},h('h2',{},'事例の基本情報'),h('div',{class:'qgrid'},
+    h('label',{},'事例No',inp('caseNo','text','例：2026-015')),h('label',{},'発生日',inp('occurredDate','date')),h('label',{},'分析日',inp('analysisDate','date')),h('label',{},'部署',inp('department')),
+    h('label',{},'事象レベル',sel(()=>S.level,v=>{S.level=v;},LEVELS,{class:'full'})),h('label',{},'事象の種類',sel(()=>S.category,v=>{S.category=v;},CATEGORIES.map(c=>[c,c||'未選択']),{class:'full'})),h('label',{},'分析者（職種）',inp('members','text','例：病棟RM、看護師長'))),
+    h('label',{style:'display:block;margin-top:8px;font-size:.9em;color:#334155'},'報告書の概要',bindText(h('textarea',{class:'full',rows:3,value:S.summary||'',placeholder:'報告書の内容を要約。個人が特定される情報は書かない'}),v=>{S.summary=v;})),
+    h('div',{class:'warnbox',style:'margin:8px 0 0'},'氏名・患者IDは入力しないでください。登場人物は「患者A」「看護師A」のように表記します。')));
+  /* 1 events */
+  const evs=h('div',{});S.rows.forEach(r=>evs.append(quickEventRow(r)));
+  scroll.append(h('div',{class:'qsec'},h('h2',{},h('span',{class:'qn'},'手順1・2'),'出来事の流れ（報告書から数行で）'),h('p',{class:'note'},'事実だけを時刻順に。「対象に」でその行動を分析対象行為に指定できます。'),evs,h('div',{style:'display:flex;gap:6px;margin-top:6px'},btn('＋ 出来事を追加',addQuickEvent,{class:'mini'}),btn('＋ 登場人物',()=>openPersonModal(),{class:'mini'}))));
+  /* 2 target action */
+  const hints=[];if(ACTION_REASON_RE.test(S.quick.action))hints.push('「〜ので」「〜ため」などの理由を含めず、行動だけを書きます（理由は背後要因で扱います）。');if(ACTION_JUDGE_RE.test(S.quick.action))hints.push('「間違って」「怠って」などの評価語を外し、行動そのものを書きます（例：「投与した」）。');
+  scroll.append(h('div',{class:'qsec'},h('h2',{},h('span',{class:'qn'},'①'),'分析対象行為を1つ選ぶ'),
+    h('div',{class:'qgrid'},h('label',{},'分析対象者',sel(()=>S.quick.actor||'',v=>{S.quick.actor=v||null;syncQuickRoot();},[['','未選択'],...S.persons.filter(p=>!THING_ROLES.has(p.role)).map(p=>[p.id,personLabel(p)])],{class:'full'})),
+      h('label',{style:'grid-column:span 2'},'分析対象行為（この事象の中で一番関心のある行動を1つ）',txt(()=>S.quick.action,v=>{S.quick.action=v;},{placeholder:'例：マッシュポテトを配膳した'},()=>{mutate(()=>{syncQuickRoot();});}))),
+    ...hints.map(t=>h('div',{class:'warnbox',style:'margin:8px 0 0'},t))));
+  /* 3 P-E */
+  const E=S.quick.pe.filter(x=>x.side==='E'),P=S.quick.pe.filter(x=>x.side==='P');
+  const eCol=h('div',{},h('h4',{},'E（環境）　当時、当事者の周りにあったもの'),h('p',{class:'note'},'先に、時刻順に。人・モノ・書類・状況。当事者が見ていない・聞いていないものも書き、「認識せず」にチェック（カッコ表示）'),...E.map(peItem),btn('＋ 環境',()=>addPE('E'),{class:'mini'}));
+  const pCol=h('div',{},h('h4',{},'P（人間）　当事者の側の要因'),h('p',{class:'note'},'次に。経験年数・勤務、持っていた情報／持っていなかった情報、思い・意図、過去の行動、体調'),...P.map(peItem),btn('＋ 人間',()=>addPE('P'),{class:'mini'}));
+  scroll.append(h('div',{class:'qsec'},h('h2',{},h('span',{class:'qn'},'②'),'P-E情報整理表（B = f(P, E)）'),h('div',{class:'pe'},eCol,pCol)));
+  /* 4 tree */
+  const sec=h('div',{class:'qsec'},h('h2',{},h('span',{class:'qn'},'③'),'背後要因を探る　「なぜ正しいと判断したのか」'));
+  if(!S.quick.action){sec.append(h('p',{class:'note'},'①で分析対象行為を入力すると、ここに図が表示されます。'));}
+  else{ensureQuickRoot();
+    const area=h('div',{class:'tree-area',id:'treeArea'});const svg=svgEl('svg',{id:'treeSvg',preserveAspectRatio:'xMinYMin meet'});const overlay=h('div',{id:'treeOverlay'});area.append(svg,overlay);
+    sec.append(h('div',{class:'toolbar',style:'border:none;padding:0 0 6px;background:transparent'},btn('＋ 要因を追加',()=>{const r=rootFactor();addFactor(ui.selectedNode||r.id);},{class:'primary'}),btn('－',()=>zoomTree(1.2)),btn('＋',()=>zoomTree(1/1.2)),btn('全体表示',()=>{ui.vb=null;redrawTree();}),h('span',{class:'hint'},'クリックで選択、ダブルクリックで編集、Enter で要因追加。Ctrl+ホイールで拡大縮小')));
+    sec.append(h('div',{class:'qtree'},area,h('aside',{id:'treeSide'})));
+    setTimeout(()=>{setupTreeInteractions(svg,area);redrawTree();},0);}
+  scroll.append(sec);
+  /* 5 measures */
+  const msec=h('div',{class:'qsec'},h('h2',{},h('span',{class:'qn'},'④'),'対策を列挙する'));
+  const facs=analysisFactors();
+  if(!facs.length)msec.append(h('p',{class:'note'},'③で背後要因を挙げると、要因ごとに対策を入力できます。'));
+  const sorted=[...facs.filter(f=>f.actionable),...facs.filter(f=>!f.actionable)];
+  for(const f of sorted)msec.append(factorGroup(f));
+  if(facs.length||measuresOf(null).length)msec.append(factorGroup(null));
+  const c=guideStats();if(S.measures.length&&!S.measures.some(m=>m.guide&&m.guide<=4))msec.append(h('div',{class:'warnbox'},'システム・環境を変える対策（GUIDE 1〜4）がありません。注意喚起や教育だけに偏っていないか確認してください。'));
+  msec.append(h('details',{style:'margin-top:8px'},h('summary',{style:'cursor:pointer;color:#334155'},'GUIDE 11段階 早見表'),h('table',{class:'guide-tbl'},...GUIDE.map(g=>h('tr',{},h('td',{class:'no'},`${g.no}`),h('td',{},h('b',{},g.label),h('div',{class:'note'},`STEP ${g.step}　${g.ex}`)))))));
+  scroll.append(msec);
+  /* 6 decide/plan/review */
+  const dsec=h('div',{class:'qsec'},h('h2',{},h('span',{class:'qn'},'⑤〜⑦'),'決定・実施・評価'));
+  if(!S.measures.length)dsec.append(h('p',{class:'note'},'④で対策を挙げると、ここで採否・担当・期限・評価を記入できます。'));
+  else{const tbl=h('table',{class:'dt'},h('tr',{},h('th',{},'対策'),h('th',{},'GUIDE'),h('th',{},'採否'),h('th',{},'担当'),h('th',{},'期限'),h('th',{},'実施確認日'),h('th',{},'状況'),h('th',{},'評価日'),h('th',{},'効果'),h('th',{},'評価・次の対応')));
+    for(const m of measureOrder()){const g=guideInfo(m.guide);tbl.append(h('tr',{class:'dec-'+(m.decision||'none')},h('td',{class:'ro',style:'min-width:200px'},m.text||'（未入力）'),h('td',{class:'ro'},g?`${g.no}. ${g.label}`:'－'),h('td',{},sel(()=>m.decision,v=>{m.decision=v;},DECISIONS)),h('td',{style:'min-width:110px'},txt(()=>m.owner,v=>{m.owner=v;})),h('td',{},txt(()=>m.due,v=>{m.due=v;},{type:'date'})),h('td',{},txt(()=>m.done,v=>{m.done=v;},{type:'date'})),h('td',{},sel(()=>m.status,v=>{m.status=v;},STATUSES)),h('td',{},txt(()=>m.reviewDate,v=>{m.reviewDate=v;},{type:'date'})),h('td',{},ratingSel(()=>m.effectResult,v=>{m.effectResult=v;},'◎再発なし・改善 ○一部改善 △効果なし')),h('td',{style:'min-width:180px'},ta(()=>m.next,v=>{m.next=v;}))));}
+    dsec.append(tbl);}
+  scroll.append(dsec);
+  view.append(scroll);main.append(view);
+}
+function renderQuickTreeSide(side){
+  side.append(h('div',{class:'rules'},h('b',{},'Level I のルール'),h('ul',{style:'margin:4px 0 0;padding-left:16px'},h('li',{},'行動 → 「正しいと判断した」 → 判断根拠（P・E）の順に逆にたどる'),h('li',{},'根拠は横に複数並べる'),h('li',{},'別の当事者の行動に達したらそこで止める'))));
+  const used=new Set(S.factors.map(f=>f.text));
+  const list=h('ul',{class:'plist'});
+  for(const it of S.quick.pe){if(!it.text)continue;const label=peLabel(it);list.append(h('li',{class:used.has(label)?'used':'',draggable:false},h('span',{class:'no',style:'color:'+(it.side==='E'?'#43a047':'#fb8c00')},it.side),h('div',{class:'body'},label),btn('＋',()=>{const r=rootFactor();if(!r)return;addFactor(ui.selectedNode||r.id,{type:'state',text:label},{edit:false});},{class:'mini',title:'選択中のノード（未選択なら起点）の下に要因として追加'})));}
+  if(!list.children.length)list.append(h('li',{style:'color:#9ca3af'},'②の P-E 情報を入力すると、ここから要因に追加できます'));
+  side.append(h('div',{},h('h3',{},'P-E 情報を要因に'),list));
+  const counts={};S.factors.forEach(f=>{if(f.pmshell)counts[f.pmshell]=(counts[f.pmshell]||0)+1;});
+  side.append(h('div',{},h('h3',{},'P-mSHELL'),h('div',{class:'chips'},...PMSHELL.map(p=>h('span',{class:'chip'+(counts[p.key]?'':' unused'),style:`background:${p.color}`,title:p.label},`${p.label.split(' ')[0]} ${counts[p.key]||0}`)))));
+}
+
+/* ========== Excel input sheet import ========== */
+const EVAL_RE=/(間違|誤っ|誤り|怠|不注意|うっかり|確認不足|見落と|失念|忘れて)/;
+const REASON_RE=/ので/;
+function writingHint(text){const t=text||'';const h=[];if(EVAL_RE.test(t))h.push('評価・推測の言葉（間違って・怠って など）が含まれています。事実（何をしたか）だけを書き、理由は背後要因で扱います。');if(REASON_RE.test(t))h.push('「〜ので」の理由は書かず、行動だけにします（理由は背後要因で扱います）。');return h.join('\n');}
+async function readZip(buf){
+  const dv=new DataView(buf),u8=new Uint8Array(buf);let eocd=-1;
+  for(let i=u8.length-22;i>=Math.max(0,u8.length-66000);i--){if(dv.getUint32(i,true)===0x06054b50){eocd=i;break;}}
+  if(eocd<0)throw new Error('Excel ファイル（.xlsx）ではありません。');
+  const n=dv.getUint16(eocd+10,true),cdOff=dv.getUint32(eocd+16,true);const entries={};let p=cdOff;const dec=new TextDecoder();
+  for(let i=0;i<n;i++){if(dv.getUint32(p,true)!==0x02014b50)break;const method=dv.getUint16(p+10,true),csize=dv.getUint32(p+20,true),nlen=dv.getUint16(p+28,true),elen=dv.getUint16(p+30,true),clen=dv.getUint16(p+32,true),loff=dv.getUint32(p+42,true);const name=dec.decode(u8.subarray(p+46,p+46+nlen));entries[name]={method,csize,loff};p+=46+nlen+elen+clen;}
+  async function get(name){const e=entries[name];if(!e)return null;const lp=e.loff;const nlen=dv.getUint16(lp+26,true),elen=dv.getUint16(lp+28,true);const start=lp+30+nlen+elen;const data=u8.subarray(start,start+e.csize);if(e.method===0)return data;if(e.method===8){if(typeof DecompressionStream==='undefined')throw new Error('このブラウザは Excel の読み込みに対応していません（Edge を最新にしてください）。');const out=await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer();return new Uint8Array(out);}throw new Error('未対応の圧縮形式です。');}
+  return{names:Object.keys(entries),get};
+}
+function colIndex(letters){let n=0;for(const ch of letters)n=n*26+(ch.charCodeAt(0)-64);return n-1;}
+function excelSerialToText(v){const days=Math.floor(v),frac=v-days;const hm=()=>{const mins=Math.round(frac*1440);return`${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;};if(days<=0)return hm();const d=new Date(Date.UTC(1899,11,30)+days*86400000);const ymd=`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;return frac>0.0001?`${d.getUTCMonth()+1}/${d.getUTCDate()} ${hm()}`:ymd;}
+async function readXlsx(buf){
+  const z=await readZip(buf);const dec=new TextDecoder();
+  const xml=async n=>{const d=await z.get(n);return d?new DOMParser().parseFromString(dec.decode(d),'application/xml'):null;};
+  const wb=await xml('xl/workbook.xml');if(!wb)throw new Error('Excel ファイルの形式が読めません。');
+  const rels=await xml('xl/_rels/workbook.xml.rels');const relMap={};if(rels)for(const r of rels.getElementsByTagNameNS('*','Relationship'))relMap[r.getAttribute('Id')]=r.getAttribute('Target');
+  const sst=[];const ss=await xml('xl/sharedStrings.xml');if(ss)for(const si of ss.getElementsByTagNameNS('*','si'))sst.push([...si.getElementsByTagNameNS('*','t')].map(t=>t.textContent).join(''));
+  const dateStyles=new Set();const st=await xml('xl/styles.xml');
+  if(st){const custom={};for(const nf of st.getElementsByTagNameNS('*','numFmt'))custom[nf.getAttribute('numFmtId')]=nf.getAttribute('formatCode')||'';const xfs=st.getElementsByTagNameNS('*','cellXfs')[0];if(xfs){[...xfs.getElementsByTagNameNS('*','xf')].forEach((xf,i)=>{const id=+xf.getAttribute('numFmtId')||0;const builtin=(id>=14&&id<=22)||(id>=45&&id<=47);const code=(custom[id]||'').replace(/"[^"]*"|\[[^\]]*\]/g,'');if(builtin||(/[dmyhs]/i.test(code)&&!/[#0]/.test(code)))dateStyles.add(String(i));});}}
+  const sheets={};
+  for(const sh of wb.getElementsByTagNameNS('*','sheet')){const name=sh.getAttribute('name');const rid=sh.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id')||sh.getAttribute('r:id');let target=relMap[rid];if(!target)continue;target=target.replace(/^\//,'');if(!target.startsWith('xl/'))target='xl/'+target;const doc=await xml(target);if(!doc)continue;const grid=[];
+    for(const c of doc.getElementsByTagNameNS('*','c')){const m=/^([A-Z]+)(\d+)$/.exec(c.getAttribute('r')||'');if(!m)continue;const col=colIndex(m[1]),row=+m[2]-1;const t=c.getAttribute('t');const vEl=c.getElementsByTagNameNS('*','v')[0];let v='';
+      if(t==='s')v=vEl?(sst[+vEl.textContent]||''):'';else if(t==='inlineStr')v=[...c.getElementsByTagNameNS('*','t')].map(x=>x.textContent).join('');else if(t==='str'||t==='b'||t==='e')v=vEl?vEl.textContent:'';else{v=vEl?vEl.textContent:'';if(v!==''&&!isNaN(+v)&&dateStyles.has(c.getAttribute('s')||'0'))v=excelSerialToText(+v);}
+      (grid[row]=grid[row]||[])[col]=String(v).trim();}
+    sheets[name]=grid;}
+  return sheets;
+}
+function normDate(v){v=String(v||'').trim();const m=/^(\d{4})[\/\-年.](\d{1,2})[\/\-月.](\d{1,2})/.exec(v);return m?`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`:v;}
+function parseInputSheet(sheets){
+  const cell=(g,r,c)=>((g[r]||[])[c]||'');
+  const evGrid=sheets['出来事'];if(!evGrid)throw new Error('「出来事」シートが見つかりません。ImSAFER 入力シート（テンプレート）を使ってください。');
+  const out={info:{},persons:[],events:[]};
+  const info=sheets['基本情報']||[];const KEYS={'事例No':'caseNo','発生日':'occurredDate','分析日':'analysisDate','部署':'department','事象レベル':'level','事象の種類':'category','分析モード':'mode','分析メンバー（職種）':'members','分析メンバー':'members','概要':'summary'};
+  for(let r=0;r<info.length;r++){const k=cell(info,r,0),v=cell(info,r,1);if(KEYS[k]&&v)out.info[KEYS[k]]=v;}
+  if(out.info.occurredDate)out.info.occurredDate=normDate(out.info.occurredDate);if(out.info.analysisDate)out.info.analysisDate=normDate(out.info.analysisDate);
+  if(out.info.level)out.info.level=String(out.info.level).replace(/^レベル/,'').toLowerCase();
+  const pg=sheets['登場人物']||[];
+  for(let r=1;r<pg.length;r++){const role=cell(pg,r,0);if(!role)continue;const mark=cell(pg,r,1).toUpperCase(),extra=cell(pg,r,2);if(ROLES.includes(role)){const thing=THING_ROLES.has(role);out.persons.push({role,mark:thing?'':mark,note:thing?'':extra,name:thing?(extra||role+mark):''});}else out.persons.push({role:'その他職種',mark,note:role+(extra?'／'+extra:''),name:''});}
+  let hr=-1,cols={};
+  for(let r=0;r<Math.min(evGrid.length,10);r++){const rowv=evGrid[r]||[];const idxOf=re=>rowv.findIndex(x=>re.test(x||''));const ci={time:idxOf(/時刻|日付/),person:idxOf(/登場人物/),text:idxOf(/出来事/),cert:idxOf(/確度/),src:idxOf(/出所/),prob:idxOf(/問題点/),fin:idxOf(/最終事象/)};if(ci.person>=0&&ci.text>=0){hr=r;cols=ci;break;}}
+  if(hr<0)throw new Error('「出来事」シートの見出し行（登場人物・出来事）が見つかりません。');
+  for(let r=hr+1;r<evGrid.length;r++){const text=cell(evGrid,r,cols.text);if(!text)continue;const g=(k)=>cols[k]>=0?cell(evGrid,r,cols[k]):'';const cert=g('cert'),src=g('src');out.events.push({time:g('time'),person:g('person'),text,certainty:CERTAINTY.includes(cert)?cert:'事実',source:SOURCES.includes(src)?src:'報告書',problem:!!g('prob'),final:!!g('fin')});}
+  if(!out.events.length)throw new Error('「出来事」シートに記入された行がありません。');
+  return out;
+}
+function applyInputSheet(data,{mode}){
+  const findPerson=label=>{label=(label||'').trim();if(!label)return null;return S.persons.find(p=>personLabel(p)===label||(p.role+p.mark)===label||(p.name&&p.name===label))||null;};
+  for(const p of data.persons){const label=THING_ROLES.has(p.role)?p.name:(p.role+p.mark);if(!findPerson(label)&&!findPerson(p.role+p.mark+(p.note?`（${p.note}）`:'')))insertPerson({id:uid(),...p,width:180});}
+  let lastTime=null,row=null;const startNo=problems().length;let pn=startNo;
+  const emptyRows=S.rows.filter(r=>!r.time&&!S.events.some(e=>e.rowId===r.id));if(emptyRows.length===S.rows.length)S.rows=[];
+  for(const it of data.events){const p=findPerson(it.person)||findOrCreatePerson(it.person);if(!(it.time&&it.time===lastTime&&row)){row={id:uid(),time:it.time};S.rows.push(row);}lastTime=it.time;const e={id:uid(),rowId:row.id,personId:p.id,text:it.text,certainty:it.certainty,source:it.source,problemNo:null,isFinal:false};if(it.problem||it.final)e.problemNo=++pn;if(it.final){S.events.forEach(x=>{x.isFinal=false;});e.isFinal=true;}S.events.push(e);}
+  if(mode==='new'){const i=data.info;for(const k of ['caseNo','occurredDate','analysisDate','department','level','category','members','summary'])if(i[k])S[k]=i[k];if(i.mode==='QuickSAFER'||i.mode==='ImSAFER')S.mode=i.mode;}
+}
+function pickXlsx(){return new Promise(res=>{const inp=h('input',{type:'file',accept:'.xlsx,.xlsm',style:'display:none'});inp.addEventListener('change',()=>{res(inp.files[0]||null);inp.remove();});document.body.append(inp);inp.click();});}
+async function importInputSheet(){
+  flushEdits();
+  let file=null;
+  if('showOpenFilePicker' in window){try{const [hd]=await showOpenFilePicker({types:[{description:'Excel 入力シート',accept:{'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':['.xlsx'],'application/vnd.ms-excel.sheet.macroEnabled.12':['.xlsm']}}]});file=await hd.getFile();}catch(e){if(e&&e.name==='AbortError')return;}}
+  if(!file){file=await pickXlsx();if(!file)return;}
+  let data;try{data=parseInputSheet(await readXlsx(await file.arrayBuffer()));}catch(e){alertDlg(e.message);return;}
+  const hasContent=S.events.some(e=>e.text)||S.caseNo;
+  const summary=`出来事 ${data.events.length} 件、登場人物 ${data.persons.length} 名${data.info.caseNo?'、事例No '+data.info.caseNo:''} を読み込みました。`;
+  const doNew=()=>{const c=newCase(data.info.mode==='QuickSAFER'?'QuickSAFER':'ImSAFER');c.rows=[];c.persons=[c.persons[0],c.persons[1]];loadCase(c,{name:null});applyInputSheet(data,{mode:'new'});ui.dirty=true;scheduleDraft();ui.step=S.mode==='QuickSAFER'?'quick':'s1';render();};
+  if(!hasContent){doNew();return;}
+  openModal({title:'Excel 入力シートの取り込み',body:h('div',{},h('p',{},summary),h('p',{class:'note'},'現在の事例には入力済みの内容があります。どちらにしますか？')),closable:true,buttons:[{label:'キャンセル'},{label:'現在の事例に出来事を追加',onClick:()=>{mutate(()=>applyInputSheet(data,{mode:'append'}));if(ui.step!=='s1'&&ui.step!=='quick')go(S.mode==='QuickSAFER'?'quick':'s1');}},{label:'新しい事例として開く',primary:true,onClick:async()=>{if(ui.dirty&&!(await confirmDlg('未保存の変更があります。破棄して新しい事例として開きますか？',{okLabel:'破棄して開く',danger:true})))return false;doNew();}}]});
+}
+
+/* ========== output / print ========== */
+function renderOutput(){
+  const main=$('#main');const view=h('div',{class:'view'},h('div',{class:'scroll'}));
+  const box=h('div',{class:'out-form'});const isQ=S.mode==='QuickSAFER';
+  const cb=(checked)=>h('input',{type:'checkbox',checked});
+  const cbSummary=cb(!isQ),cbReport=cb(!isQ),cbMeasures=cb(!isQ&&S.measures.length>0),cbPlan=cb(!isQ&&adoptedMeasures().length>0),cbQuick=cb(isQ),cbTl=cb(!isQ),cbTree=cb(!!rootFactor());
+  const paper=h('select',{},h('option',{value:'A4'},'A4'),h('option',{value:'A3'},'A3'));paper.value=isQ?'A4':'A3';
+  const orient=h('select',{},h('option',{value:'landscape'},'横'),h('option',{value:'portrait'},'縦'));
+  const scaleFit=h('input',{type:'radio',name:'sc',value:'fit',checked:true}),scale100=h('input',{type:'radio',name:'sc',value:'pct'});
+  const pct=h('input',{type:'number',value:100,min:30,max:200,style:'width:70px'});
+  const tile=h('input',{type:'checkbox',checked:true});
+  const cbImg=h('input',{type:'checkbox',checked:true});
+  const reportItems=isQ?[h('label',{},cbQuick,' QuickSAFER 分析報告書（A4縦・1〜2枚）')]:[h('label',{},cbSummary,' 委員会用サマリー（1枚）'),h('label',{},cbReport,' 基本情報・問題点一覧・背後要因一覧'),h('label',{},cbMeasures,' 対策一覧（④⑤）'),h('label',{},cbPlan,' 実施計画・評価（⑥⑦）')];
+  box.append(h('h2',{},'印刷・PDF 出力'),
+    h('fieldset',{},h('legend',{},'報告書（A4縦）'),h('div',{class:'row'},...reportItems)),
+    h('fieldset',{},h('legend',{},'図'),h('div',{class:'row'},h('label',{},cbTl,isQ?' 出来事の流れ（時系列図）':' 時系列事象関連図'),h('label',{},cbTree,' 背後要因関連図')),
+      h('div',{class:'row'},h('label',{},'用紙 ',paper),h('label',{},'向き ',orient)),
+      h('div',{class:'row'},h('label',{},scaleFit,' 用紙1枚に収める（自動縮小）'),h('label',{},scale100,' 倍率を指定 ',pct,' %')),
+      h('div',{class:'row'},h('label',{},tile,' 収まらない場合は複数枚に分割印刷（のりしろ10mm）'))),
+    h('div',{class:'row'},btn('印刷／PDFに保存',()=>doPrint({summary:cbSummary.checked,report:cbReport.checked,measures:cbMeasures.checked,plan:cbPlan.checked,quick:cbQuick.checked,timeline:cbTl.checked,tree:cbTree.checked,paper:paper.value,orient:orient.value,scaleMode:scaleFit.checked?'fit':'pct',scalePct:+pct.value||100,tile:tile.checked}),{class:'primary'})),
+    h('p',{class:'note'},'ブラウザの印刷画面が開きます。PDF にするには送信先で「Microsoft Print to PDF」または「PDF に保存」を選んでください。'),
+    h('h2',{style:'margin-top:22px'},'Excel 書き出し（.xlsx）'),
+    h('div',{class:'row'},h('label',{},cbImg,' 図を画像として含める（時系列図・背後要因図をシートに貼り付け）')),
+    h('div',{class:'row'},btn('Excel に書き出し',()=>exportExcel({images:cbImg.checked}),{class:'primary'})),
+    h('p',{class:'note'},'シート構成：基本情報／時系列事象関連図（表）／'+(isQ?'分析対象・P-E情報整理表':'問題点一覧')+'／背後要因一覧／対策一覧／実施計画・評価／図（画像）。院内様式への転記やデータの二次利用にお使いください。'));
+  view.firstChild.append(box);main.append(view);
+}
+function buildTimelineSVG(){
+  const fs=12,font=`${fs}px ${FONT_FAMILY}`,LH=Math.round(fs*1.45);
+  const timeW=84,headH=32,cellPad=6,cardPad=6,cardGap=6;
+  const cols=S.persons.map(p=>({p,w:p.width||180}));
+  const rows=S.rows.map(r=>{let maxH=34;const cells={};for(const c of cols){const evs=S.events.filter(e=>e.rowId===r.id&&e.personId===c.p.id);const items=evs.map(e=>{const lines=wrapText(e.text||'',c.w-2*cellPad-2*cardPad-4,font);const marks=[e.problemNo?`×(${e.problemNo})`:null,e.isFinal?'★':null,e.checked?'✓':null,e.flag||null].filter(Boolean).join(' ');const foot=[e.certainty!=='事実'?e.certainty:null,e.source!=='会議'?e.source:null].filter(Boolean).join('・');const hh=cardPad*2+(marks?15:0)+lines.length*LH+(foot?13:0);return{e,lines,marks,foot,hh};});let hsum=items.reduce((a,i)=>a+i.hh,0)+(items.length?(items.length-1)*cardGap:0);cells[c.p.id]=items;maxH=Math.max(maxH,hsum+2*cellPad);}return{r,cells,h:maxH};});
+  const W=timeW+cols.reduce((a,c)=>a+c.w,0),H=headH+rows.reduce((a,r)=>a+r.h,0);
+  const svg=svgEl('svg',{xmlns:SVGNS,viewBox:`0 0 ${W} ${H}`,'font-family':FONT_FAMILY});
+  svg.append(svgEl('rect',{x:0,y:0,width:W,height:H,fill:'#fff'}));
+  svg.append(svgEl('rect',{x:0,y:0,width:W,height:headH,fill:'#f1f5f9'}));
+  svg.append(svgEl('text',{x:timeW/2,y:headH/2+4,'font-size':fs,'text-anchor':'middle','font-weight':'bold'},'時刻'));
+  let x=timeW;for(const c of cols){svg.append(svgEl('text',{x:x+c.w/2,y:headH/2+4,'font-size':fs,'text-anchor':'middle','font-weight':'bold'},personLabel(c.p)));x+=c.w;}
+  let y=headH;
+  for(const row of rows){
+    svg.append(svgEl('text',{x:6,y:y+16,'font-size':fs},row.r.time||''));
+    let cx=timeW;
+    for(const c of cols){let cy=y+cellPad;for(const it of row.cells[c.p.id]){const e=it.e;const cw=c.w-2*cellPad;const g=svgEl('g',{transform:`translate(${cx+cellPad},${cy})`});g.append(svgEl('rect',{width:cw,height:it.hh,rx:4,fill:e.source==='報告書'?'#fff3cd':'#fff8c5',stroke:e.problemNo?'#d32f2f':'#c9b45c','stroke-width':e.isFinal?3:1,'stroke-dasharray':e.certainty==='推測'?'4 3':e.certainty==='不明'?'1.5 2':null}));g.append(svgEl('rect',{width:4,height:it.hh,rx:2,fill:e.problemNo?'#d32f2f':'#c9b45c'}));let ty=cardPad;if(it.marks){g.append(svgEl('text',{x:cardPad+2,y:ty+10,'font-size':11,'font-weight':'bold',fill:'#c62828'},it.marks));ty+=15;}const t=svgEl('text',{x:cardPad+2,y:ty+fs-1,'font-size':fs,fill:'#111'});it.lines.forEach((ln,i)=>t.append(svgEl('tspan',{x:cardPad+2,dy:i?LH:0},ln||' ')));g.append(t);if(it.foot)g.append(svgEl('text',{x:cw-4,y:it.hh-4,'font-size':9,fill:'#6b7280','text-anchor':'end'},it.foot));svg.append(g);cy+=it.hh+cardGap;}cx+=c.w;}
+    y+=row.h;
+  }
+  // grid
+  x=0;const xs=[0,timeW];for(const c of cols){xs.push(xs[xs.length-1]+c.w);}for(const gx of xs)svg.append(svgEl('line',{x1:gx,y1:0,x2:gx,y2:H,stroke:'#999','stroke-width':1}));
+  let gy=0;svg.append(svgEl('line',{x1:0,y1:0,x2:W,y2:0,stroke:'#999'}));gy=headH;svg.append(svgEl('line',{x1:0,y1:gy,x2:W,y2:gy,stroke:'#999'}));for(const row of rows){gy+=row.h;svg.append(svgEl('line',{x1:0,y1:gy,x2:W,y2:gy,stroke:'#999'}));}
+  svg.dataset.w=W;svg.dataset.h=H;return svg;
+}
+function buildTreeSVG(){if(!rootFactor())return null;const lay=layoutTree();const svg=svgEl('svg',{xmlns:SVGNS});const m=12;svg.append(svgEl('rect',{x:-m,y:-m,width:lay.w+2*m,height:lay.h+2*m,fill:'#fff'}));drawTree(svg,{interactive:false});svg.setAttribute('viewBox',`${-m} ${-m} ${lay.w+2*m} ${lay.h+2*m}`);svg.dataset.w=lay.w+2*m;svg.dataset.h=lay.h+2*m;return svg;}
+function buildReportPage(){
+  const lv=LEVELS.find(l=>l[0]===S.level);const tr=(a,b)=>h('tr',{},h('th',{style:'width:28%'},a),h('td',{},b));
+  const page=h('div',{class:'page page-report rep'});
+  page.append(h('h1',{},'ImSAFER 分析報告書（手順1〜3）'),h('h2',{},'基本情報'),h('table',{},tr('事例No',S.caseNo),tr('発生日',S.occurredDate),tr('分析日',S.analysisDate),tr('部署',S.department),tr('事象レベル',lv?lv[1]:''),tr('事象の種類',S.category),tr('分析モード',S.mode),tr('分析メンバー（職種）',S.members),tr('概要',h('div',{style:'white-space:pre-wrap'},S.summary))));
+  const ps=problems();
+  page.append(h('h2',{},'問題点一覧（手順2）'),h('table',{},h('tr',{},h('th',{},'番号'),h('th',{},'時刻'),h('th',{},'登場人物'),h('th',{},'内容'),h('th',{},'最終事象')),...ps.map(e=>h('tr',{},h('td',{},`×(${e.problemNo})`),h('td',{},S.rows.find(r=>r.id===e.rowId)?.time||''),h('td',{},personLabel(byPerson(e.personId))),h('td',{},e.text),h('td',{},e.isFinal?'★':'')))));
+  const fs=S.factors.filter(f=>f.parentId&&f.type!=='cushion');
+  if(fs.length){const groups=[...PMSHELL.map(p=>({key:p.key,label:p.label})),{key:null,label:'（P-mSHELL 未分類）'}];const rows=[];for(const g of groups){const items=fs.filter(f=>(f.pmshell||null)===g.key);if(!items.length)continue;items.forEach((f,i)=>rows.push(h('tr',{},i===0?h('th',{rowSpan:items.length},g.label):null,h('td',{},f.text),h('td',{},TYPE_OPTIONS.find(t=>t[0]===f.type)?.[1]||''),h('td',{},[f.actionable?'✓ 院内で対策できる':'',f.otherActor?'別の当事者の行動':''].filter(Boolean).join('／')))));}
+    page.append(h('h2',{},'背後要因一覧（手順3・P-mSHELL 別）'),h('table',{},h('tr',{},h('th',{},'P-mSHELL'),h('th',{},'背後要因'),h('th',{},'種別'),h('th',{},'備考')),...rows));}
+  page.append(h('p',{style:'font-size:8pt;color:#666;margin-top:6mm'},`出力：${fmtDate(new Date().toISOString())}　ImSAFER 分析支援 v1.0`));
+  return page;
+}
+function addDiagramPages(container,svg,opts,title){
+  const paper=PAPERS[opts.paper]||PAPERS.A4;let pw=paper.w,ph=paper.h;if(opts.orient==='landscape')[pw,ph]=[ph,pw];
+  const margin=10,titleH=8,areaW=pw-2*margin,areaH=ph-2*margin-titleH;
+  const W=+svg.dataset.w,H=+svg.dataset.h;const vb=svg.getAttribute('viewBox').split(' ').map(Number);
+  const mkPage=(s,label)=>container.append(h('div',{class:'page page-diagram'},h('div',{class:'ptitle'},`${title}　事例No：${S.caseNo||'－'}　${label||''}`),s));
+  if(opts.scaleMode==='fit'){const s=svg.cloneNode(true);s.setAttribute('width',areaW+'mm');s.setAttribute('height',areaH+'mm');s.setAttribute('preserveAspectRatio','xMinYMin meet');mkPage(s,'');return;}
+  const mmPerPx=25.4/96*(opts.scalePct/100);const Wmm=W*mmPerPx,Hmm=H*mmPerPx;
+  if(Wmm<=areaW&&Hmm<=areaH){const s=svg.cloneNode(true);s.setAttribute('width',Wmm+'mm');s.setAttribute('height',Hmm+'mm');mkPage(s,`${opts.scalePct}%`);return;}
+  if(!opts.tile){const s=svg.cloneNode(true);s.setAttribute('width',areaW+'mm');s.setAttribute('height',areaH+'mm');s.setAttribute('preserveAspectRatio','xMinYMin meet');mkPage(s,'（用紙に収めて縮小）');return;}
+  const overlap=10;const vbW=areaW/mmPerPx,vbH=areaH/mmPerPx,stepW=(areaW-overlap)/mmPerPx,stepH=(areaH-overlap)/mmPerPx;
+  const nx=Math.max(1,Math.ceil((W-overlap/mmPerPx)/stepW)),ny=Math.max(1,Math.ceil((H-overlap/mmPerPx)/stepH));
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const s=svg.cloneNode(true);s.setAttribute('viewBox',`${vb[0]+i*stepW} ${vb[1]+j*stepH} ${vbW} ${vbH}`);s.setAttribute('width',areaW+'mm');s.setAttribute('height',areaH+'mm');s.setAttribute('preserveAspectRatio','xMinYMin meet');mkPage(s,`${opts.scalePct}%　分割 ${j+1}段目・${i+1}枚目（全 ${ny}段×${nx}枚）`);}
+}
+function doPrint(o){
+  flushEdits();
+  const root=$('#printRoot');root.innerHTML='';
+  $('#printStyle').textContent=`@page{size:${o.paper} ${o.orient};margin:10mm}@page report{size:A4 portrait;margin:15mm}@page diagram{size:${o.paper} ${o.orient};margin:10mm}`;
+  if(o.summary)root.append(buildSummaryPage());
+  if(o.report)root.append(buildReportPage());
+  if(o.measures)root.append(buildMeasuresPage());
+  if(o.plan)root.append(buildPlanPage());
+  if(o.quick)root.append(buildQuickReportPage());
+  if(o.timeline)addDiagramPages(root,buildTimelineSVG(),o,S.mode==='QuickSAFER'?'出来事の流れ':'時系列事象関連図');
+  if(o.tree){const s=buildTreeSVG();if(s)addDiagramPages(root,s,o,'背後要因関連図');}
+  if(!root.children.length){alertDlg('出力する内容を選んでください。');return;}
+  setTimeout(()=>window.print(),50);
+}
+function tr2(a,b){return h('tr',{},h('th',{style:'width:28%'},a),h('td',{},b));}
+function ptbl(headers,rows){return h('table',{},h('tr',{},...headers.map(x=>h('th',{},x))),...rows.map(r=>h('tr',{},...r.map(c=>h('td',{},c==null?'':c)))));}
+function pre(t){return h('div',{style:'white-space:pre-wrap'},t||'');}
+function guideShort(no){const g=guideInfo(no);return g?`${g.no}. ${g.label}`:'';}
+function pmName(key){const p=PMSHELL.find(x=>x.key===key);return p?p.label:'';}
+function typeName(t){return t==='action'?'行動':t==='judge'?'判断':t==='cushion'?'正しいと判断した':'状態・状況';}
+function depthOf(f){let d=0,cur=f;while(cur&&cur.parentId){cur=byF(cur.parentId);if(cur&&cur.type!=='cushion')d++;}return d;}
+function levelText(){const lv=LEVELS.find(l=>l[0]===S.level);return lv&&lv[0]?lv[1]:'';}
+function footer(){return h('p',{style:'font-size:8pt;color:#666;margin-top:6mm'},`出力：${fmtDate(new Date().toISOString())}　ImSAFER 分析支援 v1.0`);}
+function buildSummaryPage(){
+  const fin=finalEvent();const facs=analysisFactors();const act=facs.filter(f=>f.actionable);const ad=adoptedMeasures();
+  const page=h('div',{class:'page page-report rep'});
+  page.append(h('h1',{},'事例分析サマリー（委員会報告用）'),
+    h('table',{},tr2('事例No',S.caseNo),tr2('発生日／分析日',`${S.occurredDate||'－'}／${S.analysisDate||'－'}`),tr2('部署',S.department),tr2('事象レベル・種類',`${levelText()}${S.category?'／'+S.category:''}`),tr2('分析手法',S.mode+'（分析メンバー：'+(S.members||'－')+'）'),tr2('概要',pre(S.summary))),
+    h('h2',{},'最終事象'),h('p',{},fin?fin.text:(rootFactor()?.text||'－')),
+    h('h2',{},act.length?'主な背後要因（院内で対策できるもの）':'主な背後要因'),h('ul',{},...(act.length?act:facs).map(f=>h('li',{},(f.pmshell?`[${PMSHELL.find(x=>x.key===f.pmshell).short}] `:'')+f.text))),
+    h('h2',{},'採用した対策'),ad.length?ptbl(['対策','GUIDE','担当','期限','状況'],ad.map(m=>[m.text,guideShort(m.guide),m.owner,m.due,m.status])):h('p',{},'（採用した対策はまだありません）'),footer());
+  return page;
+}
+function buildMeasuresPage(){
+  const page=h('div',{class:'page page-report rep'});
+  page.append(h('h1',{},'対策一覧（手順4・5）'),h('p',{},`事例No：${S.caseNo||'－'}`),
+    ptbl(['対策案','対象要因','GUIDE','4STEP/M','効果','実現性','コスト','副作用','採否','備考'],measureOrder().map(m=>[m.text,m.factorId?factorLabel(m.factorId):'',guideShort(m.guide),stepLabel(m.guide),m.eval.effect,m.eval.feas,m.eval.cost,m.eval.side,m.decision,m.note])),
+    h('p',{class:'note',style:'font-size:8pt'},'GUIDE：1 やめる／2 できないようにする／3 わかりやすくする／4 やりやすくする／5 知覚能力を持たせる／6 認知・予測させる／7 安全を優先させる／8 できる能力を持たせる／9 自分で気づかせる／10 検出する／11 備える'),footer());
+  return page;
+}
+function buildPlanPage(){
+  const page=h('div',{class:'page page-report rep'});const ms=adoptedMeasures();
+  page.append(h('h1',{},'実施計画・評価（手順6・7）'),h('p',{},`事例No：${S.caseNo||'－'}`),
+    h('h2',{},'実施計画'),ptbl(['対策','担当','期限','方法・手順','実施確認日','状況'],ms.map(m=>[m.text,m.owner,m.due,pre(m.method),m.done,m.status])),
+    h('h2',{},'評価'),ptbl(['対策','評価日','定着度','効果','新たな問題・副作用','次の対応'],ms.map(m=>[m.text,m.reviewDate,m.fixation,m.effectResult,pre(m.newIssues),pre(m.next)])),footer());
+  return page;
+}
+function buildQuickReportPage(){
+  const page=h('div',{class:'page page-report rep'});const facs=analysisFactors();
+  const E=S.quick.pe.filter(x=>x.side==='E'),P=S.quick.pe.filter(x=>x.side==='P');
+  page.append(h('h1',{},'QuickSAFER 分析報告書'),
+    h('table',{},tr2('事例No',S.caseNo),tr2('発生日／分析日',`${S.occurredDate||'－'}／${S.analysisDate||'－'}`),tr2('部署',S.department),tr2('事象レベル・種類',`${levelText()}${S.category?'／'+S.category:''}`),tr2('分析者（職種）',S.members),tr2('概要',pre(S.summary))),
+    h('h2',{},'出来事の流れ'),ptbl(['時刻','登場人物','出来事'],S.rows.map(r=>{const e=S.events.find(x=>x.rowId===r.id);return[r.time,e?personLabel(byPerson(e.personId)):'',e?e.text:''];})),
+    h('h2',{},'① 分析対象行為'),h('table',{},tr2('分析対象者',S.quick.actor?personLabel(byPerson(S.quick.actor)):''),tr2('分析対象行為',S.quick.action)),
+    h('h2',{},'② P-E情報整理表'),h('table',{},h('tr',{},h('th',{style:'width:50%'},'E（環境）　※（ ）＝当事者が認識していなかったもの'),h('th',{},'P（人間）')),h('tr',{},h('td',{},h('ul',{style:'margin:0;padding-left:16px'},...E.map(it=>h('li',{},(it.time?it.time+'　':'')+peLabel(it))))),h('td',{},h('ul',{style:'margin:0;padding-left:16px'},...P.map(it=>h('li',{},(it.cat?'['+it.cat+'] ':'')+it.text)))))),
+    h('h2',{},'③ 背後要因（なぜ正しいと判断したのか）'),ptbl(['P-mSHELL','背後要因','院内で対策'],facs.map(f=>[pmName(f.pmshell),'　'.repeat(depthOf(f))+f.text,f.actionable?'○':''])),
+    h('h2',{},'④〜⑦ 対策・実施・評価'),ptbl(['対策','GUIDE','採否','担当','期限','状況','評価'],measureOrder().map(m=>[m.text,guideShort(m.guide),m.decision,m.owner,m.due,m.status,[m.effectResult,m.next].filter(Boolean).join(' ')])),footer());
+  return page;
+}
+
+/* ========== Excel (xlsx) ========== */
+const CRC_TABLE=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}return t;})();
+function crc32(u8){let c=0xFFFFFFFF;for(let i=0;i<u8.length;i++)c=CRC_TABLE[(c^u8[i])&0xFF]^(c>>>8);return(c^0xFFFFFFFF)>>>0;}
+function makeZip(files){
+  const enc=new TextEncoder();const parts=[],central=[];let offset=0;const d=new Date();const time=(d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1),date=((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate();
+  for(const f of files){const nameB=enc.encode(f.name);const data=f.data;const crc=crc32(data);
+    const lh=new DataView(new ArrayBuffer(30));lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(6,0x0800,true);lh.setUint16(8,0,true);lh.setUint16(10,time,true);lh.setUint16(12,date,true);lh.setUint32(14,crc,true);lh.setUint32(18,data.length,true);lh.setUint32(22,data.length,true);lh.setUint16(26,nameB.length,true);lh.setUint16(28,0,true);
+    parts.push(new Uint8Array(lh.buffer),nameB,data);
+    const ch=new DataView(new ArrayBuffer(46));ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(8,0x0800,true);ch.setUint16(10,0,true);ch.setUint16(12,time,true);ch.setUint16(14,date,true);ch.setUint32(16,crc,true);ch.setUint32(20,data.length,true);ch.setUint32(24,data.length,true);ch.setUint16(28,nameB.length,true);ch.setUint16(30,0,true);ch.setUint16(32,0,true);ch.setUint16(34,0,true);ch.setUint16(36,0,true);ch.setUint32(38,0,true);ch.setUint32(42,offset,true);
+    central.push(new Uint8Array(ch.buffer),nameB);offset+=30+nameB.length+data.length;}
+  const cdSize=central.reduce((a,x)=>a+x.length,0);
+  const eocd=new DataView(new ArrayBuffer(22));eocd.setUint32(0,0x06054b50,true);eocd.setUint16(4,0,true);eocd.setUint16(6,0,true);eocd.setUint16(8,files.length,true);eocd.setUint16(10,files.length,true);eocd.setUint32(12,cdSize,true);eocd.setUint32(16,offset,true);eocd.setUint16(20,0,true);
+  return new Blob([...parts,...central,new Uint8Array(eocd.buffer)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function xmlEsc(v){return String(v??'').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function colName(i){let s='';i++;while(i>0){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26);}return s;}
+function sheetName(n){return n.replace(/[\[\]:*?\/\\]/g,'_').slice(0,31);}
+const XMLH='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+const STYLES_XML=`${XMLH}<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Yu Gothic"/><family val="2"/></font><font><b/><sz val="11"/><name val="Yu Gothic"/><family val="2"/></font><font><b/><sz val="14"/><name val="Yu Gothic"/><family val="2"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDCE6F1"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+function sheetXml(sh,drawingRid){
+  let rows='';(sh.rows||[]).forEach((r,ri)=>{let cells='';(r||[]).forEach((c,ci)=>{if(c==null)return;const v=(typeof c==='object')?c.v:c;const st=(typeof c==='object'&&c.s!=null)?c.s:2;const ref=`${colName(ci)}${ri+1}`;if(v===''||v==null){cells+=`<c r="${ref}" s="${st}"/>`;return;}cells+=`<c r="${ref}" s="${st}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`;});if(cells)rows+=`<row r="${ri+1}">${cells}</row>`;});
+  const cols=(sh.cols||[]).map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('');
+  return `${XMLH}<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>${cols?`<cols>${cols}</cols>`:''}<sheetData>${rows}</sheetData><pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/>${drawingRid?`<drawing r:id="${drawingRid}"/>`:''}</worksheet>`;
+}
+function buildXlsx(sheets){
+  const enc=new TextEncoder();const parts=new Map();const add=(name,v)=>parts.set(name,typeof v==='string'?enc.encode(v):v);
+  let ct=`${XMLH}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>`;
+  let wbSheets='',wbRels='',drawingN=0,imageN=0;
+  sheets.forEach((sh,i)=>{const n=i+1;ct+=`<Override PartName="/xl/worksheets/sheet${n}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`;wbSheets+=`<sheet name="${xmlEsc(sheetName(sh.name))}" sheetId="${n}" r:id="rId${n}"/>`;wbRels+=`<Relationship Id="rId${n}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${n}.xml"/>`;
+    let drawingRid=null;
+    if(sh.images&&sh.images.length){drawingN++;const dn=drawingN;drawingRid='rId1';ct+=`<Override PartName="/xl/drawings/drawing${dn}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>`;
+      add(`xl/worksheets/_rels/sheet${n}.xml.rels`,`${XMLH}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing${dn}.xml"/></Relationships>`);
+      let anchors='',drels='';
+      sh.images.forEach((im,k)=>{imageN++;const rid=`rId${k+1}`;add(`xl/media/image${imageN}.png`,im.png);drels+=`<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${imageN}.png"/>`;const cx=Math.round(im.w*9525),cy=Math.round(im.h*9525);
+        anchors+=`<xdr:oneCellAnchor><xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${im.row||0}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:ext cx="${cx}" cy="${cy}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${k+2}" name="Picture ${k+1}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`;});
+      add(`xl/drawings/drawing${dn}.xml`,`${XMLH}<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${anchors}</xdr:wsDr>`);
+      add(`xl/drawings/_rels/drawing${dn}.xml.rels`,`${XMLH}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${drels}</Relationships>`);}
+    add(`xl/worksheets/sheet${n}.xml`,sheetXml(sh,drawingRid));});
+  ct+='</Types>';
+  const files=[];const push=(name,v)=>files.push({name,data:typeof v==='string'?enc.encode(v):v});
+  push('[Content_Types].xml',ct);
+  push('_rels/.rels',`${XMLH}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`);
+  push('xl/workbook.xml',`${XMLH}<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${wbSheets}</sheets></workbook>`);
+  push('xl/_rels/workbook.xml.rels',`${XMLH}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${wbRels}<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
+  push('xl/styles.xml',STYLES_XML);
+  for(const [name,data] of parts)files.push({name,data});
+  return makeZip(files);
+}
+function svgToPng(svg,scale=2){return new Promise((res,rej)=>{const W=+svg.dataset.w,H=+svg.dataset.h;const s=svg.cloneNode(true);s.setAttribute('width',W);s.setAttribute('height',H);const xml=new XMLSerializer().serializeToString(s);const img=new Image();img.onload=()=>{try{const c=document.createElement('canvas');c.width=Math.round(W*scale);c.height=Math.round(H*scale);const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);c.toBlob(async b=>{if(!b){rej(new Error('toBlob failed'));return;}res({png:new Uint8Array(await b.arrayBuffer()),w:W,h:H});},'image/png');}catch(e){rej(e);}};img.onerror=()=>rej(new Error('svg load failed'));img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(xml);});}
+async function saveBlob(blob,name,types){
+  if('showSaveFilePicker' in window){try{const hnd=await showSaveFilePicker({suggestedName:name,types});const w=await hnd.createWritable();await w.write(blob);await w.close();return true;}catch(e){if(e&&e.name==='AbortError')return false;console.warn(e);}}
+  const a=h('a',{href:URL.createObjectURL(blob),download:name});document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);alertDlg(`「${name}」をダウンロードフォルダに保存しました。`);return true;
+}
+function rowTime(e){return S.rows.find(r=>r.id===e.rowId)?.time||'';}
+async function exportExcel({images=true}={}){
+  flushEdits();
+  const T=v=>({v,s:3}),H=v=>({v,s:1});const isQ=S.mode==='QuickSAFER';
+  const sheets=[];
+  sheets.push({name:'基本情報',cols:[22,70],rows:[[T(`${S.mode} 分析`)],[],[H('事例No'),S.caseNo],[H('発生日'),S.occurredDate],[H('分析日'),S.analysisDate],[H('部署'),S.department],[H('事象レベル'),levelText()],[H('事象の種類'),S.category],[H(isQ?'分析者（職種）':'分析メンバー（職種）'),S.members],[H('概要'),S.summary],[H('出力日時'),fmtDate(new Date().toISOString())]]});
+  const persons=S.persons;const tl=[[H('時刻'),...persons.map(p=>H(personLabel(p)))]];
+  for(const r of S.rows)tl.push([r.time,...persons.map(p=>S.events.filter(e=>e.rowId===r.id&&e.personId===p.id).map(e=>(e.problemNo?`×(${e.problemNo})${e.isFinal?'★':''} `:'')+(e.checked?'✓ ':'')+(e.flag?`【${e.flag}】`:'')+e.text+(e.certainty!=='事実'?`〔${e.certainty}〕`:'')).join('\n'))]);
+  sheets.push({name:isQ?'出来事の流れ':'時系列事象関連図（表）',cols:[10,...persons.map(()=>30)],rows:tl});
+  if(isQ)sheets.push({name:'分析対象・P-E情報整理表',cols:[14,18,60,10],rows:[[H('分析対象者'),S.quick.actor?personLabel(byPerson(S.quick.actor)):''],[H('分析対象行為'),S.quick.action],[],[H('区分'),H('時刻／分類'),H('内容'),H('認識せず')],...S.quick.pe.map(it=>[it.side==='E'?'E 環境':'P 人間',it.side==='E'?it.time:it.cat,it.text,it.unseen?'○':''])]});
+  else sheets.push({name:'問題点一覧',cols:[8,10,18,60,8],rows:[[H('番号'),H('時刻'),H('登場人物'),H('内容'),H('最終事象')],...problems().map(e=>[`×(${e.problemNo})`,rowTime(e),personLabel(byPerson(e.personId)),e.text,e.isFinal?'★':''])]});
+  const facs=analysisFactors();
+  sheets.push({name:'背後要因一覧',cols:[6,28,60,14,14,18],rows:[[H('階層'),H('P-mSHELL'),H('背後要因'),H('種別'),H('院内で対策できる'),H('備考')],...facs.map(f=>[String(depthOf(f)),pmName(f.pmshell),'　'.repeat(depthOf(f))+f.text,typeName(f.type),f.actionable?'○':'',f.otherActor?'別の当事者の行動':''])]});
+  sheets.push({name:'対策一覧',cols:[50,36,26,26,6,6,6,6,8,26],rows:[[H('対策案'),H('対象要因'),H('GUIDE'),H('4STEP/M'),H('効果'),H('実現性'),H('コスト'),H('副作用'),H('採否'),H('備考')],...measureOrder().map(m=>[m.text,m.factorId?factorLabel(m.factorId):'',guideShort(m.guide),stepLabel(m.guide),m.eval.effect,m.eval.feas,m.eval.cost,m.eval.side,m.decision,m.note])]});
+  sheets.push({name:'実施計画・評価',cols:[50,16,12,40,12,8,12,8,8,30,30],rows:[[H('対策'),H('担当'),H('期限'),H('方法・手順'),H('実施確認日'),H('状況'),H('評価日'),H('定着度'),H('効果'),H('新たな問題'),H('次の対応')],...adoptedMeasures().map(m=>[m.text,m.owner,m.due,m.method,m.done,m.status,m.reviewDate,m.fixation,m.effectResult,m.newIssues,m.next])]});
+  if(images){try{const im=await svgToPng(buildTimelineSVG(),2);sheets.push({name:isQ?'図_出来事の流れ':'図_時系列事象関連図',cols:[4],rows:[[T(isQ?'出来事の流れ':'時系列事象関連図')]],images:[{...im,row:2}]});const ts=buildTreeSVG();if(ts){const im2=await svgToPng(ts,2);sheets.push({name:'図_背後要因関連図',cols:[4],rows:[[T('背後要因関連図')]],images:[{...im2,row:2}]});}}catch(e){console.warn(e);await alertDlg('図の画像化に失敗したため、表のみ出力します。');}}
+  const blob=buildXlsx(sheets);
+  const name=`ImSAFER_${(S.caseNo||'事例').replace(/[\\/:*?"<>|]/g,'_')}_${(S.analysisDate||'').replace(/-/g,'')||'draft'}.xlsx`;
+  await saveBlob(blob,name,[{description:'Excel ブック',accept:{'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':['.xlsx']}}]);
+}
+
+/* ========== help / start ========== */
+function showHelp(){openModal({title:'使い方',width:'620px',body:`
+<h4 style="margin:4px 0">全体</h4><ul><li><kbd>Ctrl</kbd>+<kbd>S</kbd> 保存　<kbd>Ctrl</kbd>+<kbd>Z</kbd> 元に戻す　<kbd>Ctrl</kbd>+<kbd>Y</kbd> やり直す</li><li>編集中の内容は数秒ごとにブラウザ内へ下書き保存されます（次回起動時に復元できます）。正式な保存は「保存」でファイルに書き出してください。</li></ul>
+<h4 style="margin:10px 0 4px">① 時系列事象関連図</h4><ul><li>セルをクリックで付箋を追加。<kbd>Enter</kbd> 下の行へ／<kbd>Tab</kbd> 右の列へ／<kbd>Shift</kbd>+<kbd>Enter</kbd> 改行／<kbd>Esc</kbd> 取消</li><li>付箋はドラッグで別のセルへ移動。付箋下のタグをクリックで「確度（事実・推測・不明）」「出所（会議・報告書・ヒアリング）」を切替</li><li>列の見出し右端をドラッグで幅を変更。行の「⊕」で下に行を挿入</li></ul>
+<h4 style="margin:10px 0 4px">① 一覧入力・並べ替え・確認モード</h4><ul><li>「一覧入力」：Excel 風の表で上から順に入力。<kbd>Enter</kbd> で次の出来事を追加。時刻の「⏱」で表現（前日など）・日付・時刻を組み立て</li><li>「時刻順に並べ替え」：「7:20」「前日 18:30」「9/10 7:20」などを解釈して行を並べ替え（元に戻せます）</li><li>「確認モード」：会議で報告書・ヒアリング由来の付箋を1枚ずつ確認して ✓。直すものは「要修正」</li></ul>
+<h4 style="margin:10px 0 4px">② 問題点の抽出</h4><ul><li>付箋にマウスを乗せて「×」で問題点に番号を付与。右の一覧で最終事象に ★</li></ul>
+<h4 style="margin:10px 0 4px">③ 背後要因の探索</h4><ul><li>ノードをクリックで選択、ダブルクリックで編集。<kbd>Enter</kbd> 要因を追加／<kbd>Shift</kbd>+<kbd>Enter</kbd> 並列に追加／<kbd>F2</kbd> 編集／<kbd>Delete</kbd> 削除</li><li>種別を「行動」「判断」にすると「〇〇が正しいと判断した」が自動で挟まります</li><li>背景をドラッグで移動、ホイールで拡大縮小。「全体表示」で戻ります</li></ul>
+<h4 style="margin:10px 0 4px">④〜⑦ 対策・実施・評価</h4><ul><li>④ 要因ごとに対策案を挙げ、GUIDE 11段階を選ぶと 4STEP/M（発生防止／拡大防止）が自動表示されます</li><li>⑤ 効果・実現性・コスト・副作用を ◎○△ で評価し採否を決定。⑥ 採用した対策の担当・期限・方法、⑦ 評価</li></ul>
+<h4 style="margin:10px 0 4px">QuickSAFER</h4><ul><li>1画面で完結。出来事の流れ → 分析対象行為を1つ → P-E情報整理表（E を先に時系列で、次に P）→ 背後要因 → 対策 → 決定・実施・評価</li><li>「ImSAFER に格上げ」でデータを引き継いで本格分析に切り替えられます</li></ul>
+<h4 style="margin:10px 0 4px">出力</h4><ul><li>印刷／PDF：報告書（A4縦）と図（A4/A3・分割印刷）</li><li>Excel：表と図（画像）を .xlsx に書き出し</li></ul>`,buttons:[{label:'閉じる',primary:true}]});}
+async function showStart(){
+  const d=readDraft();const recent=('showOpenFilePicker' in window)?((await kvGet('recent'))||[]):[];
+  const body=h('div',{});
+  body.append(h('div',{class:'start-grid'},h('button',{class:'primary',onclick:()=>{m.close();loadCase(newCase('ImSAFER'));}},'新規作成（ImSAFER）'),h('button',{onclick:()=>{m.close();loadCase(newCase('QuickSAFER'));}},'新規作成（QuickSAFER）'),h('button',{onclick:()=>{m.close();openFile();}},'ファイルを開く'),h('button',{onclick:()=>{m.close();importInputSheet();}},'Excel 入力シートから作成'),d?h('button',{onclick:()=>{m.close();restoreDraft();}},`下書きを復元\n（${fmtDate(d.savedAt)}${d.caseNo?' / '+d.caseNo:''}）`):h('button',{disabled:true},'下書きなし')));
+  if(recent.length){body.append(h('h4',{style:'margin:14px 0 4px'},'最近のファイル'),h('ul',{class:'recent'},...recent.map(r=>h('li',{onclick:()=>{m.close();openRecent(r);}},'📄 '+r.name))));}
+  body.append(h('p',{class:'note',style:'margin-top:12px'},'このアプリはインターネットに接続せず、データはこの端末内（保存したファイルとブラウザの下書き）にのみ置かれます。'));
+  const m=openModal({title:'ImSAFER 分析支援',body,closable:true});
+}
+
+/* ========== init ========== */
+document.addEventListener('keydown',e=>{
+  const t=e.target;const inField=/INPUT|TEXTAREA|SELECT/.test(t.tagName)||t.isContentEditable;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveFile(false);return;}
+  if((e.ctrlKey||e.metaKey)&&!inField&&e.key.toLowerCase()==='z'){e.preventDefault();undo();return;}
+  if((e.ctrlKey||e.metaKey)&&!inField&&e.key.toLowerCase()==='y'){e.preventDefault();redo();return;}
+  if((ui.step==='s3'||ui.step==='quick')&&!inField&&ui.selectedNode&&!ui.editingNode&&!$('.modal-back')){
+    if(e.key==='Enter'&&e.shiftKey){e.preventDefault();addSibling(ui.selectedNode);}
+    else if(e.key==='Enter'){e.preventDefault();addFactor(ui.selectedNode);}
+    else if(e.key==='F2'){e.preventDefault();startNodeEdit(ui.selectedNode);}
+    else if(e.key==='Delete'){e.preventDefault();deleteNode(ui.selectedNode);}
+    else if(e.key==='Escape'){ui.selectedNode=null;redrawTree();}
+  }
+});
+window.addEventListener('beforeunload',e=>{if(ui.dirty){e.preventDefault();e.returnValue='';}});
+$('#btnNew').addEventListener('click',newCaseFlow);
+$('#btnOpen').addEventListener('click',openFile);
+$('#btnSave').addEventListener('click',()=>saveFile(false));
+$('#btnSaveAs').addEventListener('click',()=>saveFile(true));
+$('#btnUndo').addEventListener('click',undo);
+$('#btnRedo').addEventListener('click',redo);
+$('#btnBig').addEventListener('click',()=>{flushEdits();document.body.classList.toggle('big');render();});
+$('#btnHelp').addEventListener('click',showHelp);
+for(const id of ['btnNew','btnOpen','btnSave','btnSaveAs','btnUndo','btnRedo','btnBig','btnHelp'])$('#'+id).addEventListener('mousedown',e=>e.preventDefault());
+
+/* ================= スマホ用のふるまい ================= */
+const PHONE_SAMPLES=[{"title":"インスリン過量投与（ImSAFER）","case":{"id":"case-test-001","mode":"ImSAFER","caseNo":"TEST-001","occurredDate":"2026-09-10","analysisDate":"2026-09-17","department":"内科病棟（テスト事例）","level":"3a","category":"薬剤","summary":"糖尿病で入院中の患者A（80歳代）に対し、当日朝に医師が超速効型インスリンを6単位→3単位へ減量したが、看護師は5時に印刷した紙の指示一覧表をもとに6単位を準備・投与した。朝食摂取量は3割で、10:30に低血糖（血糖42）による意識レベル低下を認め、ブドウ糖静注で回復した。\n※本事例はアプリ動作確認用の架空の事例です。","members":"医療安全管理者、内科病棟師長、看護師、薬剤師、医師","createdAt":"2026-09-17T12:38:49","updatedAt":"2026-09-17T12:38:49","persons":[{"id":"p001","role":"患者","mark":"A","note":"","name":"","width":190},{"id":"p002","role":"看護師","mark":"A","note":"日勤","name":"","width":190},{"id":"p003","role":"看護師","mark":"B","note":"夜勤","name":"","width":190},{"id":"p004","role":"医師","mark":"A","note":"","name":"","width":190},{"id":"p005","role":"情報・書類","mark":"","note":"","name":"電子カルテ／指示一覧表","width":190}],"rows":[{"id":"r006","time":"前日 18:30"},{"id":"r008","time":"5:00"},{"id":"r010","time":"6:00"},{"id":"r012","time":"7:20"},{"id":"r015","time":"7:25"},{"id":"r017","time":"7:30"},{"id":"r019","time":"7:45"},{"id":"r023","time":"7:50"},{"id":"r025","time":"8:00"},{"id":"r027","time":"8:10"},{"id":"r029","time":"10:30"},{"id":"r031","time":"10:35"},{"id":"r033","time":"10:40"},{"id":"r035","time":"11:00"}],"events":[{"id":"e007","rowId":"r006","personId":"p001","text":"夕食の摂取量が3割だった（数日前から食欲低下）","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e009","rowId":"r008","personId":"p003","text":"本日分のインスリン指示一覧表（紙）を電子カルテから印刷し、処置台に置いた","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e011","rowId":"r010","personId":"p003","text":"患者Aの血糖を測定した（98 mg/dL）","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e013","rowId":"r012","personId":"p004","text":"血糖値と摂取量を見て、朝食前の超速効型インスリンを6単位→3単位に変更し、電子カルテの指示簿に入力した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e014","rowId":"r012","personId":"p005","text":"指示簿に「朝食前 3単位（7:20変更）」が表示された","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e016","rowId":"r015","personId":"p004","text":"指示変更を病棟看護師に連絡せず、外来診療のため病棟を離れた","certainty":"事実","source":"ヒアリング","problemNo":1,"isFinal":false},{"id":"e018","rowId":"r017","personId":"p002","text":"日勤の情報収集で、処置台の紙の指示一覧表を確認した（患者A：朝食前 6単位と記載）","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e020","rowId":"r019","personId":"p002","text":"紙の一覧表をもとに患者Aのインスリン6単位を準備した","certainty":"事実","source":"報告書","problemNo":2,"isFinal":false},{"id":"e021","rowId":"r019","personId":"p002","text":"準備時に電子カルテの指示簿は開かなかった","certainty":"事実","source":"ヒアリング","problemNo":null,"isFinal":false},{"id":"e022","rowId":"r019","personId":"p005","text":"紙の一覧表には印刷時刻の記載がなかった","certainty":"事実","source":"ヒアリング","problemNo":null,"isFinal":false},{"id":"e024","rowId":"r023","personId":"p002","text":"患者Aにインスリン6単位を皮下注射した","certainty":"事実","source":"報告書","problemNo":3,"isFinal":false},{"id":"e026","rowId":"r025","personId":"p001","text":"朝食を3割摂取した","certainty":"事実","source":"報告書","problemNo":4,"isFinal":false},{"id":"e028","rowId":"r027","personId":"p002","text":"摂取量3割を看護記録に入力した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e030","rowId":"r029","personId":"p001","text":"冷汗・傾眠がみられ、呼びかけへの反応が鈍くなった（低血糖）","certainty":"事実","source":"報告書","problemNo":5,"isFinal":true},{"id":"e032","rowId":"r031","personId":"p002","text":"血糖を測定（42 mg/dL）し、医師Aに電話で報告した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e034","rowId":"r033","personId":"p004","text":"50%ブドウ糖20mLの静注を指示し、看護師Aが実施した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e036","rowId":"r035","personId":"p001","text":"意識清明に回復した（血糖 130 mg/dL）","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false}],"factors":[{"id":"f037","parentId":null,"type":"state","text":"低血糖（血糖42 mg/dL）で意識レベルが低下した","pmshell":null,"actionable":false,"otherActor":false,"eventId":"e030","personId":"p001"},{"id":"f038","parentId":"f037","type":"action","text":"看護師Aが患者Aにインスリン6単位を皮下注射した","pmshell":null,"actionable":false,"otherActor":false,"eventId":"e024","personId":"p002"},{"id":"f039","parentId":"f038","type":"cushion","text":"看護師Aが正しいと判断した","pmshell":null,"actionable":false,"otherActor":false,"eventId":null,"personId":"p002"},{"id":"f040","parentId":"f039","type":"state","text":"紙の指示一覧表に「6単位」と記載されていた","pmshell":"S","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f041","parentId":"f040","type":"state","text":"一覧表は5:00に印刷され、7:20の指示変更が反映されていなかった","pmshell":"S","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f042","parentId":"f040","type":"state","text":"印刷後に指示が変更された場合の扱いが決まっていなかった","pmshell":"m","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f043","parentId":"f039","type":"state","text":"投与前に電子カルテの指示簿を確認していなかった","pmshell":"L1","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f044","parentId":"f043","type":"state","text":"病棟では紙の一覧表で準備するのが慣習になっていた","pmshell":"E","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f045","parentId":"f043","type":"state","text":"指示変更があったことを知らなかった","pmshell":"L1","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f046","parentId":"f045","type":"action","text":"医師Aが指示変更後に病棟へ連絡しなかった","pmshell":"L2","actionable":false,"otherActor":true,"eventId":"e016","personId":"p004"},{"id":"f047","parentId":"f046","type":"cushion","text":"医師Aが正しいと判断した","pmshell":null,"actionable":false,"otherActor":false,"eventId":null,"personId":"p004"},{"id":"f048","parentId":"f047","type":"state","text":"電子カルテに入力すれば看護師に伝わると考えていた","pmshell":"L2","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f049","parentId":"f047","type":"state","text":"指示変更時に医師が病棟へ連絡するルールが明文化されていなかった","pmshell":"m","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f050","parentId":"f047","type":"state","text":"外来診療の開始時刻が迫っていた","pmshell":"E","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f051","parentId":"f039","type":"state","text":"朝の忙しい時間帯で複数患者のインスリンを同時に準備していた","pmshell":"E","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f052","parentId":"f037","type":"state","text":"患者Aの朝食摂取量が3割だった","pmshell":"P","actionable":false,"otherActor":false,"eventId":"e026","personId":"p001"},{"id":"f053","parentId":"f052","type":"state","text":"食事摂取量に応じてインスリンを減量・確認する基準が病棟になかった","pmshell":"m","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f054","parentId":"f037","type":"state","text":"投与後の観察で低血糖の兆候に気づくのが10:30まで遅れた","pmshell":"L1","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f055","parentId":"f054","type":"state","text":"摂取量が少ない患者の観察強化（血糖再測定など）の基準がなかった","pmshell":"S","actionable":true,"otherActor":false,"eventId":null,"personId":null}],"measures":[{"id":"m056","factorId":"f041","text":"紙のインスリン指示一覧表の運用を廃止し、電子カルテの指示簿画面から直接準備する","guide":1,"eval":{"effect":"◎","feas":"○","cost":"○","side":"○"},"decision":"採用","note":"端末台数の確認が必要","owner":"看護部・情報管理室","due":"2026-11-30","method":"①病棟の端末配置を確認 ②手順書を改訂 ③2週間の試行 ④本運用","done":"","status":"実施中","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""},{"id":"m057","factorId":"f041","text":"一覧表を継続する場合は印刷時刻を記載し、「印刷後の変更は指示簿で確認」と明記する","guide":9,"eval":{"effect":"△","feas":"◎","cost":"◎","side":"○"},"decision":"保留","note":"廃止までの暫定策","owner":"","due":"","method":"","done":"","status":"未着手","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""},{"id":"m058","factorId":"f042","text":"印刷後に指示変更があった場合、医師が一覧表を修正し押印する運用にする","guide":9,"eval":{"effect":"△","feas":"△","cost":"◎","side":"△"},"decision":"不採用","note":"紙運用の温存になるため不採用","owner":"","due":"","method":"","done":"","status":"未着手","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""},{"id":"m059","factorId":"f044","text":"インスリン準備時のダブルチェックで、電子カルテの指示簿画面と薬剤・単位を照合する手順にする","guide":10,"eval":{"effect":"○","feas":"◎","cost":"◎","side":"○"},"decision":"採用","note":"","owner":"内科病棟 師長・RM","due":"2026-10-15","method":"チェックリストの項目を改訂し、朝のカンファレンスで周知。2週間後に実施状況を確認","done":"2026-10-10","status":"完了","reviewDate":"2026-11-10","fixation":"○","effectResult":"○","newIssues":"端末が1台のため朝に順番待ちが発生している","next":"端末増設まで、準備の時間帯をずらす運用を追加"},{"id":"m060","factorId":"f049","text":"医師が指示変更を入力すると病棟の端末に未確認の通知が表示され、看護師が確認するまで消えない機能を有効化する","guide":10,"eval":{"effect":"◎","feas":"○","cost":"○","side":"○"},"decision":"採用","note":"","owner":"情報管理室・医療安全管理室","due":"2026-12-20","method":"ベンダーに設定変更を依頼→テスト病棟で試行→全病棟展開","done":"","status":"未着手","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""},{"id":"m061","factorId":"f049","text":"指示変更時は医師が病棟リーダーに電話連絡するルールを定める","guide":7,"eval":{"effect":"○","feas":"△","cost":"◎","side":"△"},"decision":"保留","note":"医局の合意が必要。通知機能の稼働後に再検討","owner":"","due":"","method":"","done":"","status":"未着手","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""},{"id":"m062","factorId":"f053","text":"食事摂取量が5割未満の患者には、インスリン投与前に医師へ確認する基準を設ける","guide":7,"eval":{"effect":"◎","feas":"○","cost":"◎","side":"○"},"decision":"採用","note":"","owner":"糖尿病チーム・内科病棟","due":"2026-10-31","method":"糖尿病チームで基準を作成し、病棟マニュアルに追加","done":"2026-10-28","status":"完了","reviewDate":"2026-11-28","fixation":"◎","effectResult":"◎","newIssues":"","next":"継続"},{"id":"m063","factorId":"f055","text":"摂取量5割未満の患者は投与2時間後に血糖を再測定し、低血糖時の対応フローを掲示する","guide":11,"eval":{"effect":"○","feas":"◎","cost":"◎","side":"◎"},"decision":"採用","note":"","owner":"内科病棟 RM","due":"2026-10-31","method":"観察基準を看護手順に追加。低血糖対応フローをナースステーションに掲示","done":"2026-10-20","status":"完了","reviewDate":"2026-11-28","fixation":"○","effectResult":"○","newIssues":"","next":""},{"id":"m064","factorId":null,"text":"インスリン投与前の指示確認を徹底するよう朝礼で注意喚起する","guide":8,"eval":{"effect":"△","feas":"◎","cost":"◎","side":"○"},"decision":"不採用","note":"単独では効果が続かないため、上記の仕組みの変更を優先","owner":"","due":"","method":"","done":"","status":"未着手","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""}],"quick":{"actor":null,"action":"","pe":[]}}},{"title":"離床センサー使用中の転倒（QuickSAFER）","case":{"id":"case-test-q01","mode":"QuickSAFER","caseNo":"TEST-Q01","occurredDate":"2026-09-12","analysisDate":"2026-09-17","department":"3階西病棟（テスト事例）","level":"2","category":"療養上の世話","summary":"夜間、排泄介助のため離床センサーの電源を切った後、他患者のナースコール対応で電源を戻さずに退室。30分後に患者Aが一人で歩き出し病室内で転倒した（尻もち、外傷なし）。\n※本事例はアプリ動作確認用の架空の事例です。","members":"病棟リスクマネージャー、看護師","createdAt":"2026-09-17T12:38:49","updatedAt":"2026-09-17T12:38:49","persons":[{"id":"p501","role":"患者","mark":"A","note":"","name":"","width":190},{"id":"p502","role":"看護師","mark":"A","note":"1年目","name":"","width":190},{"id":"p503","role":"医師","mark":"A","note":"","name":"","width":190},{"id":"p504","role":"機器・モノ","mark":"","note":"","name":"離床センサー","width":190}],"rows":[{"id":"r505","time":"21:00"},{"id":"r507","time":"21:10"},{"id":"r509","time":"21:10"},{"id":"r511","time":"21:40"},{"id":"r513","time":"21:42"},{"id":"r515","time":"22:00"}],"events":[{"id":"e506","rowId":"r505","personId":"p502","text":"患者Aの排泄介助のため、離床センサーの電源を切ってポータブルトイレへ誘導した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e508","rowId":"r507","personId":"p502","text":"他患者のナースコールが鳴り、患者Aをベッドに戻して病室を退室した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e510","rowId":"r509","personId":"p504","text":"電源が切れたままだった","certainty":"事実","source":"ヒアリング","problemNo":null,"isFinal":false},{"id":"e512","rowId":"r511","personId":"p501","text":"一人でトイレへ行こうとして病室内で転倒した（尻もち、外傷なし）","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e514","rowId":"r513","personId":"p502","text":"物音に気づいて訪室し、転倒を発見。医師Aに報告した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e516","rowId":"r515","personId":"p503","text":"診察し、経過観察の指示を出した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false}],"factors":[{"id":"f517","parentId":null,"type":"action","text":"患者Aの病室を退室した","pmshell":null,"actionable":false,"otherActor":false,"eventId":null,"personId":"p502"},{"id":"f518","parentId":"f517","type":"cushion","text":"看護師Aが正しいと判断した","pmshell":null,"actionable":false,"otherActor":false,"eventId":null,"personId":"p502"},{"id":"f519","parentId":"f518","type":"state","text":"ナースコールに早く対応することを優先すべきと考えた","pmshell":"L1","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f520","parentId":"f518","type":"state","text":"離床センサーの電源を切ったことを覚えていなかった","pmshell":"L1","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f521","parentId":"f520","type":"state","text":"電源スイッチがベッド頭側の見えにくい位置にあり、退室時に目に入らない","pmshell":"H","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f522","parentId":"f520","type":"state","text":"「切る」場面（介助時）と「戻す」場面（退室時）が分かれており、戻し忘れが起きやすい","pmshell":"S","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f523","parentId":"f518","type":"state","text":"夜勤3人体制で受け持ちが12名だった","pmshell":"m","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f524","parentId":"f518","type":"state","text":"消灯後で病室が暗く、センサーの表示ランプが見えにくかった","pmshell":"E","actionable":false,"otherActor":false,"eventId":null,"personId":null}],"measures":[{"id":"m525","factorId":"f522","text":"離床センサーを「電源OFF」ではなく「一時停止（一定時間で自動復帰）」で使う設定に変更する","guide":2,"eval":{"effect":"◎","feas":"○","cost":"◎","side":"○"},"decision":"採用","note":"","owner":"病棟RM・臨床工学技士","due":"2026-10-15","method":"CEに設定変更を依頼し、全台を確認。使い方をスタッフに説明","done":"","status":"実施中","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""},{"id":"m526","factorId":"f521","text":"センサーがOFF／一時停止のときにナースステーションのモニターに表示されるようにする","guide":10,"eval":{"effect":"○","feas":"○","cost":"○","side":"◎"},"decision":"採用","note":"","owner":"病棟師長","due":"2026-11-30","method":"メーカーに機能を確認し見積を取得","done":"","status":"未着手","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""},{"id":"m527","factorId":"f520","text":"退室時に「センサー戻した？」の声かけを徹底する","guide":9,"eval":{"effect":"△","feas":"◎","cost":"◎","side":"○"},"decision":"保留","note":"設定変更が済むまでの暫定策","owner":"","due":"","method":"","done":"","status":"未着手","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""}],"quick":{"actor":"p502","action":"患者Aの病室を退室した","pe":[{"id":"pe1","side":"E","time":"21:00","cat":"","text":"患者A（夜間せん妄あり、転倒歴あり）","unseen":false},{"id":"pe2","side":"E","time":"21:00","cat":"","text":"離床センサーの電源スイッチ（ベッド頭側）","unseen":false},{"id":"pe3","side":"E","time":"21:10","cat":"","text":"他患者のナースコールが鳴った","unseen":false},{"id":"pe4","side":"E","time":"21:10","cat":"","text":"消灯後で病室が暗い","unseen":false},{"id":"pe5","side":"E","time":"21:10","cat":"","text":"離床センサーの電源が切れたままの状態","unseen":true},{"id":"pe6","side":"P","time":"","cat":"経験・勤務状況","text":"看護師経験1年目、夜勤3人体制で受け持ち12名","unseen":false},{"id":"pe7","side":"P","time":"","cat":"持っていた情報","text":"患者Aは転倒リスクが高く、離床センサーを使用中と知っていた","unseen":false},{"id":"pe8","side":"P","time":"","cat":"持っていなかった情報","text":"センサーの電源が切れたままであることを認識していなかった","unseen":false},{"id":"pe9","side":"P","time":"","cat":"思い・意図","text":"ナースコールに早く対応したい","unseen":false},{"id":"pe10","side":"P","time":"","cat":"過去の行動・記憶","text":"21:00にセンサーの電源を切った","unseen":false}]}}}];
+const isPhone=()=>window.matchMedia('(max-width:760px)').matches;
+/* 1) 起動時・画面回転時：スマホでは①を「一覧入力」にする */
+function phoneDefaults(){if(isPhone()&&ui.tlMode!=='list'){ui.tlMode='list';}}
+phoneDefaults();
+window.addEventListener('resize',()=>{if(isPhone()&&ui.step==='s1'&&ui.tlMode!=='list'){ui.tlMode='list';render();}});
+/* 2) 一覧入力の各セルに見出しを付ける（スマホでカード表示にするため） */
+const LT_LABELS=['No.','日付・時刻','登場人物','出来事','確度','出所','×','★','✓','操作'];
+function labelListCells(){for(const tr of document.querySelectorAll('table.lt tbody tr')){[...tr.children].forEach((td,i)=>{if(LT_LABELS[i])td.dataset.label=LT_LABELS[i];});}}
+/* 3) 背後要因図：指でのスクロール・ピンチ操作 */
+function enableTouchTree(){
+  const svg=$('#treeSvg'),area=$('#treeArea');if(!svg||svg.dataset.touch)return;svg.dataset.touch='1';
+  const pts=new Map();let base=null;
+  const center=()=>{const a=[...pts.values()];return{x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2,d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)};};
+  svg.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse')return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===1){const vb=currentVB();base={mode:'pan',sx:e.clientX,sy:e.clientY,vx:vb.x,vy:vb.y,moved:false,id:e.pointerId};}
+    else if(pts.size===2){const c=center(),vb=currentVB();base={mode:'zoom',cx:c.x,cy:c.y,d:c.d,vb:{...vb},rect:area.getBoundingClientRect()};}
+    svg.setPointerCapture&&svg.setPointerCapture(e.pointerId);
+  });
+  svg.addEventListener('pointermove',e=>{
+    if(e.pointerType==='mouse'||!pts.has(e.pointerId)||!base)return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});e.preventDefault();
+    if(base.mode==='pan'&&pts.size===1){
+      const sc=treeScale(),dx=(e.clientX-base.sx)/sc,dy=(e.clientY-base.sy)/sc;
+      if(Math.abs(dx)+Math.abs(dy)>3)base.moved=true;
+      ui.vb.x=base.vx-dx;ui.vb.y=base.vy-dy;
+      svg.setAttribute('viewBox',`${ui.vb.x} ${ui.vb.y} ${ui.vb.w} ${ui.vb.h}`);renderTreeOverlay();
+    }else if(base.mode==='zoom'&&pts.size>=2){
+      const c=center();const f=Math.max(.2,Math.min(5,base.d/Math.max(10,c.d)));
+      const vb=base.vb;const fx=(base.cx-base.rect.left)/area.clientWidth,fy=(base.cy-base.rect.top)/area.clientHeight;
+      const px=vb.x+fx*vb.w,py=vb.y+fy*vb.h;
+      ui.vb.w=vb.w*f;ui.vb.h=ui.vb.w*area.clientHeight/area.clientWidth;
+      ui.vb.x=px-fx*ui.vb.w;ui.vb.y=py-fy*ui.vb.h;
+      svg.setAttribute('viewBox',`${ui.vb.x} ${ui.vb.y} ${ui.vb.w} ${ui.vb.h}`);renderTreeOverlay();
+    }
+  },{passive:false});
+  const end=e=>{
+    if(e.pointerType==='mouse')return;
+    pts.delete(e.pointerId);
+    if(pts.size===0){
+      if(base&&base.mode==='pan'&&!base.moved){const g=e.target.closest&&e.target.closest('g.node');if(!g&&ui.selectedNode){ui.selectedNode=null;redrawTree();}}
+      base=null;
+    }else if(pts.size===1){const vb=currentVB();const p=[...pts.values()][0];base={mode:'pan',sx:p.x,sy:p.y,vx:vb.x,vy:vb.y,moved:true};}
+  };
+  svg.addEventListener('pointerup',end);svg.addEventListener('pointercancel',end);
+}
+/* 4) 描画のたびに上の2つを効かせる */
+const _phoneRender=render;
+render=function(){_phoneRender.apply(this,arguments);try{labelListCells();enableTouchTree();phoneHints();}catch(e){console.warn(e);}};
+const _phoneRedraw=redrawTree;
+redrawTree=function(){
+  _phoneRedraw.apply(this,arguments);
+  /* スマホでは図を小さく縮めすぎず、起点が読める大きさで表示する */
+  if(isPhone()&&!ui._phoneFit){
+    const r=rootFactor(),area=$('#treeArea');const o=r&&L.get(r.id);
+    if(o&&area&&area.clientWidth){ui._phoneFit=1;const vw=Math.max(360,TREE.W*2.3);const vh=vw*area.clientHeight/area.clientWidth;
+      ui.vb={x:o.x-16,y:o.y+o.h/2-vh/2,w:vw,h:vh};_phoneRedraw.apply(this,arguments);}
+  }
+  try{enableTouchTree();}catch(e){console.warn(e);}
+};
+const _phoneLoadCase=loadCase;
+loadCase=function(){ui._phoneFit=0;return _phoneLoadCase.apply(this,arguments);};
+/* 操作の説明をスマホ向けの言葉にする */
+function phoneHints(){
+  if(!isPhone())return;
+  for(const el of document.querySelectorAll('.toolbar .hint')){
+    el.textContent=el.textContent
+      .replace('背景ドラッグで移動、ホイールで拡大縮小。','指でなぞって移動、2本指でつまんで拡大縮小。')
+      .replace('ノードをクリックで選択、ダブルクリックで編集。Enter＝要因を追加／F2＝編集／Delete＝削除。','要因を1回タップで選択、2回タップで文字を直せます。')
+      .replace('セルをクリックして付箋を追加。Enter＝下の行へ／Tab＝右の列へ／Shift+Enter＝改行／Esc＝取消。付箋はドラッグで移動。','マスをタップで付箋を追加。入力しづらいときは「一覧入力」が便利です。')
+      .replace('Enter＝次の出来事へ／Shift+Enter＝改行。時刻の「⏱」で日付・時刻を組み立てられます。','「＋出来事を追加」で増やせます。時刻の時計ボタンで日付・時刻を選べます。');
+  }
+}
+/* 5) 最初の画面に「練習事例を開く」を足す */
+const _phoneShowStart=showStart;
+showStart=async function(){
+  await _phoneShowStart.apply(this,arguments);
+  const box=document.querySelector('.modal-back .modal .modal-body');if(!box)return;
+  const close=()=>document.querySelector('.modal-back')?.remove();
+  const wrap=h('div',{style:'margin-top:14px'},h('h4',{style:'margin:0 0 6px'},'練習事例をひらく（架空の事例です）'));
+  PHONE_SAMPLES.forEach((sp,i)=>wrap.append(btn(`練習事例 ${i+1}：${sp.title}`,()=>{close();loadCase(migrate(JSON.parse(JSON.stringify(sp.case))),{name:null});ui.dirty=false;renderShell();},{style:'display:block;width:100%;text-align:left;margin:4px 0'})));
+  wrap.append(h('p',{class:'note',style:'margin:6px 0 0'},'中身の入った事例で、画面の動きをすぐに確かめられます。'));
+  box.append(wrap);
+};
+/* 6) スマホでは保存＝ダウンロードになる旨を一度だけ知らせる */
+if(isPhone()&&!('showSaveFilePicker' in window)){
+  const KEY='imsafer.phonehint';
+  try{if(!localStorage.getItem(KEY)){localStorage.setItem(KEY,'1');setTimeout(()=>{alertDlg('スマホでは「保存」を押すとファイルが端末にダウンロードされます（iPhone は「ファイル」アプリに入ります）。\n編集中の内容は自動で下書き保存され、次に開いたとき「下書きを復元」で戻せます。','スマホでお使いの方へ');},900);}}catch(e){}
+}
+
+S=newCase();render();showStart();
+</script>
+<script>
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+</body>
+</html>

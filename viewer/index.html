@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>ImSAFER 分析ビューア</title>
+<meta name="theme-color" content="#1e293b">
+<link rel="icon" href="../app/icon-192.png">
+<style>
+:root{--fs:15px;--bg:#eef1f5;--panel:#fff;--line:#d3d9e0;--text:#1f2937;--muted:#6b7280;--accent:#1976d2;--danger:#d32f2f;--sticky:#fff8c5}
+body.big{--fs:18px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{font-family:"Yu Gothic UI","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:var(--fs);color:var(--text);background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;color:var(--text)}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+header{background:#1e293b;color:#fff;padding:8px 12px;padding-top:max(8px,env(safe-area-inset-top));display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+header h1{font-size:1em;margin:0;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+header button{background:#334155;color:#fff;border-color:#475569;padding:5px 9px;font-size:.88em}
+header button.on{background:#0ea5e9;border-color:#0ea5e9}
+nav{display:flex;gap:6px;padding:7px 10px;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto;-webkit-overflow-scrolling:touch}
+nav button{border-radius:20px;white-space:nowrap;padding:6px 14px;font-size:.92em}
+nav button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+main{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:10px 10px max(16px,env(safe-area-inset-bottom))}
+.wrap{max-width:900px;margin:0 auto}
+h2.sec{font-size:1.05em;margin:14px 0 8px;padding-left:8px;border-left:4px solid var(--accent)}
+h2.sec:first-child{margin-top:0}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 8px}
+.note{color:var(--muted);font-size:.85em}
+.kv{display:grid;grid-template-columns:5.6em 1fr;gap:3px 8px;font-size:.95em}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0}
+.chip{display:inline-block;border-radius:11px;padding:1px 9px;font-size:.78em;background:#eef2f7;color:#334155;white-space:nowrap}
+.chip.pm{color:#fff}
+.chip.ok{background:#e8f5e9;color:#1b5e20}
+.chip.warn{background:#fff3cd;color:#7a5200}
+.chip.red{background:#fde2e2;color:#b71c1c}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.banner{background:#fff8e1;border:1px solid #ffe0a3;border-radius:10px;padding:9px 12px;margin:0 0 10px;font-size:.9em}
+.toolrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 8px}
+.toolrow .sp{flex:1}
+/* timeline list */
+.tgroup{margin:0 0 12px}
+.thead{display:inline-block;background:#334155;color:#fff;border-radius:12px;padding:2px 12px;font-size:.85em;font-weight:600;margin:0 0 6px}
+.ev{background:var(--sticky);border:1px solid #e0c96b;border-left:5px solid #e0c96b;border-radius:8px;padding:8px 10px;margin:0 0 6px}
+.ev.prob{border-color:#e57373;border-left-color:var(--danger)}
+.ev.final{box-shadow:0 0 0 2px var(--danger) inset}
+.ev.guess{border-style:dashed}
+.ev .who{font-size:.82em;color:#5b4b00;font-weight:600;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ev .who .mk{color:var(--danger);font-weight:700}
+.ev .tx{margin-top:3px;line-height:1.5;white-space:pre-wrap}
+/* tree outline */
+.tr{border-left:3px solid #cbd5e1;margin-left:10px;padding-left:12px}
+.tr>.node{background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin:6px 0}
+.node.root{background:#fde2e2;border-color:var(--danger)}
+.node.action,.node.judge{border-color:var(--accent);background:#f5faff}
+.node.cushion{background:var(--sticky);border-color:#f2b705}
+.node .lab{font-size:.76em;color:var(--muted)}
+.node .tx{line-height:1.5}
+/* svg box */
+.svgbox{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:auto;-webkit-overflow-scrolling:touch;max-height:72vh}
+.svgbox svg{display:block}
+/* measures */
+.m .gd{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px}
+.m .no{background:var(--accent);color:#fff;border-radius:50%;width:1.7em;height:1.7em;display:inline-flex;align-items:center;justify-content:center;font-size:.8em;font-weight:700;flex:none}
+.m.adopt{border-left:5px solid #2e7d32}
+.m.reject{opacity:.55}
+table.ev2{width:100%;border-collapse:collapse;font-size:.9em}
+table.ev2 th,table.ev2 td{border:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
+table.ev2 th{background:#f1f5f9;white-space:nowrap}
+.pe{display:grid;gap:8px}
+@media(min-width:700px){.pe{grid-template-columns:1fr 1fr}}
+.empty{color:var(--muted);text-align:center;padding:30px 10px}
+.about li{margin:5px 0;line-height:1.6}
+.modal-back{position:fixed;inset:0;background:rgba(15,23,42,.5);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:420px;max-height:84vh;overflow:auto;padding:16px}
+.modal h3{margin:0 0 10px;font-size:1.05em}
+.modal button{width:100%;margin:6px 0;text-align:left;padding:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">ImSAFER 分析ビューア</h1>
+  <button id="btnOpen">事例を選ぶ</button>
+  <button id="btnBig">文字を大きく</button>
+</header>
+<nav id="nav"></nav>
+<main id="main"></main>
+<script>
+'use strict';
+const SAMPLES=[{"title":"インスリン過量投与（ImSAFER）","case":{"id":"case-test-001","mode":"ImSAFER","caseNo":"TEST-001","occurredDate":"2026-09-10","analysisDate":"2026-09-17","department":"内科病棟（テスト事例）","level":"3a","category":"薬剤","summary":"糖尿病で入院中の患者A（80歳代）に対し、当日朝に医師が超速効型インスリンを6単位→3単位へ減量したが、看護師は5時に印刷した紙の指示一覧表をもとに6単位を準備・投与した。朝食摂取量は3割で、10:30に低血糖（血糖42）による意識レベル低下を認め、ブドウ糖静注で回復した。\n※本事例はアプリ動作確認用の架空の事例です。","members":"医療安全管理者、内科病棟師長、看護師、薬剤師、医師","createdAt":"2026-09-17T12:38:49","updatedAt":"2026-09-17T12:38:49","persons":[{"id":"p001","role":"患者","mark":"A","note":"","name":"","width":190},{"id":"p002","role":"看護師","mark":"A","note":"日勤","name":"","width":190},{"id":"p003","role":"看護師","mark":"B","note":"夜勤","name":"","width":190},{"id":"p004","role":"医師","mark":"A","note":"","name":"","width":190},{"id":"p005","role":"情報・書類","mark":"","note":"","name":"電子カルテ／指示一覧表","width":190}],"rows":[{"id":"r006","time":"前日 18:30"},{"id":"r008","time":"5:00"},{"id":"r010","time":"6:00"},{"id":"r012","time":"7:20"},{"id":"r015","time":"7:25"},{"id":"r017","time":"7:30"},{"id":"r019","time":"7:45"},{"id":"r023","time":"7:50"},{"id":"r025","time":"8:00"},{"id":"r027","time":"8:10"},{"id":"r029","time":"10:30"},{"id":"r031","time":"10:35"},{"id":"r033","time":"10:40"},{"id":"r035","time":"11:00"}],"events":[{"id":"e007","rowId":"r006","personId":"p001","text":"夕食の摂取量が3割だった（数日前から食欲低下）","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e009","rowId":"r008","personId":"p003","text":"本日分のインスリン指示一覧表（紙）を電子カルテから印刷し、処置台に置いた","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e011","rowId":"r010","personId":"p003","text":"患者Aの血糖を測定した（98 mg/dL）","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e013","rowId":"r012","personId":"p004","text":"血糖値と摂取量を見て、朝食前の超速効型インスリンを6単位→3単位に変更し、電子カルテの指示簿に入力した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e014","rowId":"r012","personId":"p005","text":"指示簿に「朝食前 3単位（7:20変更）」が表示された","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e016","rowId":"r015","personId":"p004","text":"指示変更を病棟看護師に連絡せず、外来診療のため病棟を離れた","certainty":"事実","source":"ヒアリング","problemNo":1,"isFinal":false},{"id":"e018","rowId":"r017","personId":"p002","text":"日勤の情報収集で、処置台の紙の指示一覧表を確認した（患者A：朝食前 6単位と記載）","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e020","rowId":"r019","personId":"p002","text":"紙の一覧表をもとに患者Aのインスリン6単位を準備した","certainty":"事実","source":"報告書","problemNo":2,"isFinal":false},{"id":"e021","rowId":"r019","personId":"p002","text":"準備時に電子カルテの指示簿は開かなかった","certainty":"事実","source":"ヒアリング","problemNo":null,"isFinal":false},{"id":"e022","rowId":"r019","personId":"p005","text":"紙の一覧表には印刷時刻の記載がなかった","certainty":"事実","source":"ヒアリング","problemNo":null,"isFinal":false},{"id":"e024","rowId":"r023","personId":"p002","text":"患者Aにインスリン6単位を皮下注射した","certainty":"事実","source":"報告書","problemNo":3,"isFinal":false},{"id":"e026","rowId":"r025","personId":"p001","text":"朝食を3割摂取した","certainty":"事実","source":"報告書","problemNo":4,"isFinal":false},{"id":"e028","rowId":"r027","personId":"p002","text":"摂取量3割を看護記録に入力した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e030","rowId":"r029","personId":"p001","text":"冷汗・傾眠がみられ、呼びかけへの反応が鈍くなった（低血糖）","certainty":"事実","source":"報告書","problemNo":5,"isFinal":true},{"id":"e032","rowId":"r031","personId":"p002","text":"血糖を測定（42 mg/dL）し、医師Aに電話で報告した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e034","rowId":"r033","personId":"p004","text":"50%ブドウ糖20mLの静注を指示し、看護師Aが実施した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e036","rowId":"r035","personId":"p001","text":"意識清明に回復した（血糖 130 mg/dL）","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false}],"factors":[{"id":"f037","parentId":null,"type":"state","text":"低血糖（血糖42 mg/dL）で意識レベルが低下した","pmshell":null,"actionable":false,"otherActor":false,"eventId":"e030","personId":"p001"},{"id":"f038","parentId":"f037","type":"action","text":"看護師Aが患者Aにインスリン6単位を皮下注射した","pmshell":null,"actionable":false,"otherActor":false,"eventId":"e024","personId":"p002"},{"id":"f039","parentId":"f038","type":"cushion","text":"看護師Aが正しいと判断した","pmshell":null,"actionable":false,"otherActor":false,"eventId":null,"personId":"p002"},{"id":"f040","parentId":"f039","type":"state","text":"紙の指示一覧表に「6単位」と記載されていた","pmshell":"S","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f041","parentId":"f040","type":"state","text":"一覧表は5:00に印刷され、7:20の指示変更が反映されていなかった","pmshell":"S","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f042","parentId":"f040","type":"state","text":"印刷後に指示が変更された場合の扱いが決まっていなかった","pmshell":"m","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f043","parentId":"f039","type":"state","text":"投与前に電子カルテの指示簿を確認していなかった","pmshell":"L1","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f044","parentId":"f043","type":"state","text":"病棟では紙の一覧表で準備するのが慣習になっていた","pmshell":"E","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f045","parentId":"f043","type":"state","text":"指示変更があったことを知らなかった","pmshell":"L1","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f046","parentId":"f045","type":"action","text":"医師Aが指示変更後に病棟へ連絡しなかった","pmshell":"L2","actionable":false,"otherActor":true,"eventId":"e016","personId":"p004"},{"id":"f047","parentId":"f046","type":"cushion","text":"医師Aが正しいと判断した","pmshell":null,"actionable":false,"otherActor":false,"eventId":null,"personId":"p004"},{"id":"f048","parentId":"f047","type":"state","text":"電子カルテに入力すれば看護師に伝わると考えていた","pmshell":"L2","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f049","parentId":"f047","type":"state","text":"指示変更時に医師が病棟へ連絡するルールが明文化されていなかった","pmshell":"m","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f050","parentId":"f047","type":"state","text":"外来診療の開始時刻が迫っていた","pmshell":"E","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f051","parentId":"f039","type":"state","text":"朝の忙しい時間帯で複数患者のインスリンを同時に準備していた","pmshell":"E","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f052","parentId":"f037","type":"state","text":"患者Aの朝食摂取量が3割だった","pmshell":"P","actionable":false,"otherActor":false,"eventId":"e026","personId":"p001"},{"id":"f053","parentId":"f052","type":"state","text":"食事摂取量に応じてインスリンを減量・確認する基準が病棟になかった","pmshell":"m","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f054","parentId":"f037","type":"state","text":"投与後の観察で低血糖の兆候に気づくのが10:30まで遅れた","pmshell":"L1","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f055","parentId":"f054","type":"state","text":"摂取量が少ない患者の観察強化（血糖再測定など）の基準がなかった","pmshell":"S","actionable":true,"otherActor":false,"eventId":null,"personId":null}],"measures":[{"id":"m056","factorId":"f041","text":"紙のインスリン指示一覧表の運用を廃止し、電子カルテの指示簿画面から直接準備する","guide":1,"eval":{"effect":"◎","feas":"○","cost":"○","side":"○"},"decision":"採用","note":"端末台数の確認が必要","owner":"看護部・情報管理室","due":"2026-11-30","method":"①病棟の端末配置を確認 ②手順書を改訂 ③2週間の試行 ④本運用","done":"","status":"実施中","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""},{"id":"m057","factorId":"f041","text":"一覧表を継続する場合は印刷時刻を記載し、「印刷後の変更は指示簿で確認」と明記する","guide":9,"eval":{"effect":"△","feas":"◎","cost":"◎","side":"○"},"decision":"保留","note":"廃止までの暫定策","owner":"","due":"","method":"","done":"","status":"未着手","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""},{"id":"m058","factorId":"f042","text":"印刷後に指示変更があった場合、医師が一覧表を修正し押印する運用にする","guide":9,"eval":{"effect":"△","feas":"△","cost":"◎","side":"△"},"decision":"不採用","note":"紙運用の温存になるため不採用","owner":"","due":"","method":"","done":"","status":"未着手","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""},{"id":"m059","factorId":"f044","text":"インスリン準備時のダブルチェックで、電子カルテの指示簿画面と薬剤・単位を照合する手順にする","guide":10,"eval":{"effect":"○","feas":"◎","cost":"◎","side":"○"},"decision":"採用","note":"","owner":"内科病棟 師長・RM","due":"2026-10-15","method":"チェックリストの項目を改訂し、朝のカンファレンスで周知。2週間後に実施状況を確認","done":"2026-10-10","status":"完了","reviewDate":"2026-11-10","fixation":"○","effectResult":"○","newIssues":"端末が1台のため朝に順番待ちが発生している","next":"端末増設まで、準備の時間帯をずらす運用を追加"},{"id":"m060","factorId":"f049","text":"医師が指示変更を入力すると病棟の端末に未確認の通知が表示され、看護師が確認するまで消えない機能を有効化する","guide":10,"eval":{"effect":"◎","feas":"○","cost":"○","side":"○"},"decision":"採用","note":"","owner":"情報管理室・医療安全管理室","due":"2026-12-20","method":"ベンダーに設定変更を依頼→テスト病棟で試行→全病棟展開","done":"","status":"未着手","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""},{"id":"m061","factorId":"f049","text":"指示変更時は医師が病棟リーダーに電話連絡するルールを定める","guide":7,"eval":{"effect":"○","feas":"△","cost":"◎","side":"△"},"decision":"保留","note":"医局の合意が必要。通知機能の稼働後に再検討","owner":"","due":"","method":"","done":"","status":"未着手","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""},{"id":"m062","factorId":"f053","text":"食事摂取量が5割未満の患者には、インスリン投与前に医師へ確認する基準を設ける","guide":7,"eval":{"effect":"◎","feas":"○","cost":"◎","side":"○"},"decision":"採用","note":"","owner":"糖尿病チーム・内科病棟","due":"2026-10-31","method":"糖尿病チームで基準を作成し、病棟マニュアルに追加","done":"2026-10-28","status":"完了","reviewDate":"2026-11-28","fixation":"◎","effectResult":"◎","newIssues":"","next":"継続"},{"id":"m063","factorId":"f055","text":"摂取量5割未満の患者は投与2時間後に血糖を再測定し、低血糖時の対応フローを掲示する","guide":11,"eval":{"effect":"○","feas":"◎","cost":"◎","side":"◎"},"decision":"採用","note":"","owner":"内科病棟 RM","due":"2026-10-31","method":"観察基準を看護手順に追加。低血糖対応フローをナースステーションに掲示","done":"2026-10-20","status":"完了","reviewDate":"2026-11-28","fixation":"○","effectResult":"○","newIssues":"","next":""},{"id":"m064","factorId":null,"text":"インスリン投与前の指示確認を徹底するよう朝礼で注意喚起する","guide":8,"eval":{"effect":"△","feas":"◎","cost":"◎","side":"○"},"decision":"不採用","note":"単独では効果が続かないため、上記の仕組みの変更を優先","owner":"","due":"","method":"","done":"","status":"未着手","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""}],"quick":{"actor":null,"action":"","pe":[]}}},{"title":"離床センサー使用中の転倒（QuickSAFER）","case":{"id":"case-test-q01","mode":"QuickSAFER","caseNo":"TEST-Q01","occurredDate":"2026-09-12","analysisDate":"2026-09-17","department":"3階西病棟（テスト事例）","level":"2","category":"療養上の世話","summary":"夜間、排泄介助のため離床センサーの電源を切った後、他患者のナースコール対応で電源を戻さずに退室。30分後に患者Aが一人で歩き出し病室内で転倒した（尻もち、外傷なし）。\n※本事例はアプリ動作確認用の架空の事例です。","members":"病棟リスクマネージャー、看護師","createdAt":"2026-09-17T12:38:49","updatedAt":"2026-09-17T12:38:49","persons":[{"id":"p501","role":"患者","mark":"A","note":"","name":"","width":190},{"id":"p502","role":"看護師","mark":"A","note":"1年目","name":"","width":190},{"id":"p503","role":"医師","mark":"A","note":"","name":"","width":190},{"id":"p504","role":"機器・モノ","mark":"","note":"","name":"離床センサー","width":190}],"rows":[{"id":"r505","time":"21:00"},{"id":"r507","time":"21:10"},{"id":"r509","time":"21:10"},{"id":"r511","time":"21:40"},{"id":"r513","time":"21:42"},{"id":"r515","time":"22:00"}],"events":[{"id":"e506","rowId":"r505","personId":"p502","text":"患者Aの排泄介助のため、離床センサーの電源を切ってポータブルトイレへ誘導した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e508","rowId":"r507","personId":"p502","text":"他患者のナースコールが鳴り、患者Aをベッドに戻して病室を退室した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e510","rowId":"r509","personId":"p504","text":"電源が切れたままだった","certainty":"事実","source":"ヒアリング","problemNo":null,"isFinal":false},{"id":"e512","rowId":"r511","personId":"p501","text":"一人でトイレへ行こうとして病室内で転倒した（尻もち、外傷なし）","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e514","rowId":"r513","personId":"p502","text":"物音に気づいて訪室し、転倒を発見。医師Aに報告した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false},{"id":"e516","rowId":"r515","personId":"p503","text":"診察し、経過観察の指示を出した","certainty":"事実","source":"報告書","problemNo":null,"isFinal":false}],"factors":[{"id":"f517","parentId":null,"type":"action","text":"患者Aの病室を退室した","pmshell":null,"actionable":false,"otherActor":false,"eventId":null,"personId":"p502"},{"id":"f518","parentId":"f517","type":"cushion","text":"看護師Aが正しいと判断した","pmshell":null,"actionable":false,"otherActor":false,"eventId":null,"personId":"p502"},{"id":"f519","parentId":"f518","type":"state","text":"ナースコールに早く対応することを優先すべきと考えた","pmshell":"L1","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f520","parentId":"f518","type":"state","text":"離床センサーの電源を切ったことを覚えていなかった","pmshell":"L1","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f521","parentId":"f520","type":"state","text":"電源スイッチがベッド頭側の見えにくい位置にあり、退室時に目に入らない","pmshell":"H","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f522","parentId":"f520","type":"state","text":"「切る」場面（介助時）と「戻す」場面（退室時）が分かれており、戻し忘れが起きやすい","pmshell":"S","actionable":true,"otherActor":false,"eventId":null,"personId":null},{"id":"f523","parentId":"f518","type":"state","text":"夜勤3人体制で受け持ちが12名だった","pmshell":"m","actionable":false,"otherActor":false,"eventId":null,"personId":null},{"id":"f524","parentId":"f518","type":"state","text":"消灯後で病室が暗く、センサーの表示ランプが見えにくかった","pmshell":"E","actionable":false,"otherActor":false,"eventId":null,"personId":null}],"measures":[{"id":"m525","factorId":"f522","text":"離床センサーを「電源OFF」ではなく「一時停止（一定時間で自動復帰）」で使う設定に変更する","guide":2,"eval":{"effect":"◎","feas":"○","cost":"◎","side":"○"},"decision":"採用","note":"","owner":"病棟RM・臨床工学技士","due":"2026-10-15","method":"CEに設定変更を依頼し、全台を確認。使い方をスタッフに説明","done":"","status":"実施中","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""},{"id":"m526","factorId":"f521","text":"センサーがOFF／一時停止のときにナースステーションのモニターに表示されるようにする","guide":10,"eval":{"effect":"○","feas":"○","cost":"○","side":"◎"},"decision":"採用","note":"","owner":"病棟師長","due":"2026-11-30","method":"メーカーに機能を確認し見積を取得","done":"","status":"未着手","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""},{"id":"m527","factorId":"f520","text":"退室時に「センサー戻した？」の声かけを徹底する","guide":9,"eval":{"effect":"△","feas":"◎","cost":"◎","side":"○"},"decision":"保留","note":"設定変更が済むまでの暫定策","owner":"","due":"","method":"","done":"","status":"未着手","reviewDate":"","fixation":"","effectResult":"","newIssues":"","next":""}],"quick":{"actor":"p502","action":"患者Aの病室を退室した","pe":[{"id":"pe1","side":"E","time":"21:00","cat":"","text":"患者A（夜間せん妄あり、転倒歴あり）","unseen":false},{"id":"pe2","side":"E","time":"21:00","cat":"","text":"離床センサーの電源スイッチ（ベッド頭側）","unseen":false},{"id":"pe3","side":"E","time":"21:10","cat":"","text":"他患者のナースコールが鳴った","unseen":false},{"id":"pe4","side":"E","time":"21:10","cat":"","text":"消灯後で病室が暗い","unseen":false},{"id":"pe5","side":"E","time":"21:10","cat":"","text":"離床センサーの電源が切れたままの状態","unseen":true},{"id":"pe6","side":"P","time":"","cat":"経験・勤務状況","text":"看護師経験1年目、夜勤3人体制で受け持ち12名","unseen":false},{"id":"pe7","side":"P","time":"","cat":"持っていた情報","text":"患者Aは転倒リスクが高く、離床センサーを使用中と知っていた","unseen":false},{"id":"pe8","side":"P","time":"","cat":"持っていなかった情報","text":"センサーの電源が切れたままであることを認識していなかった","unseen":false},{"id":"pe9","side":"P","time":"","cat":"思い・意図","text":"ナースコールに早く対応したい","unseen":false},{"id":"pe10","side":"P","time":"","cat":"過去の行動・記憶","text":"21:00にセンサーの電源を切った","unseen":false}]}}}];
+const $=(s,r=document)=>r.querySelector(s);
+function h(tag,props,...kids){const e=document.createElement(tag);for(const[k,v]of Object.entries(props||{})){if(v==null||v===false)continue;if(k==='class')e.className=v;else if(k==='style')e.style.cssText=v;else if(k.startsWith('on'))e.addEventListener(k.slice(2).toLowerCase(),v);else if(k in e){try{e[k]=v;}catch{e.setAttribute(k,v);}}else e.setAttribute(k,v);}for(const c of kids.flat(Infinity)){if(c==null||c===false)continue;e.append(c.nodeType?c:document.createTextNode(String(c)));}return e;}
+const SVGNS='http://www.w3.org/2000/svg';
+function svgEl(tag,attrs={},...kids){const e=document.createElementNS(SVGNS,tag);for(const[k,v]of Object.entries(attrs)){if(v==null)continue;e.setAttribute(k,v);}for(const c of kids.flat(Infinity)){if(c==null)continue;e.append(typeof c==='string'?document.createTextNode(c):c);}return e;}
+function btn(label,onClick,props={}){return h('button',{type:'button',onclick:onClick,...props},label);}
+const FONT_FAMILY='"Yu Gothic UI","Hiragino Sans","Noto Sans JP",sans-serif';
+const _mc=document.createElement('canvas').getContext('2d');
+function wrapText(text,maxW,font){_mc.font=font;const lines=[];for(const para of String(text??'').split('\n')){let line='';for(const ch of para){const t=line+ch;if(_mc.measureText(t).width>maxW&&line){lines.push(line);line=ch;}else line=t;}lines.push(line);}return lines.length?lines:[''];}
+
+const THING_ROLES=new Set(['機器・モノ','情報・書類','その他']);
+const LEVELS={'0':'レベル0：エラーがあったが患者には実施されなかった','1':'レベル1：患者への実害はなかった','2':'レベル2：処置や治療は行わなかった','3a':'レベル3a：簡単な処置や治療を要した','3b':'レベル3b：濃厚な処置や治療を要した','4a':'レベル4a：永続的な障害・後遺症（機能障害を伴わない）','4b':'レベル4b：永続的な障害・後遺症（機能障害を伴う）','5':'レベル5：死亡'};
+const PMSHELL=[{key:'P',short:'P',label:'P 患者',color:'#e53935'},{key:'m',short:'m',label:'m 管理・組織',color:'#8e24aa'},{key:'S',short:'S',label:'S ソフトウェア',color:'#00897b'},{key:'H',short:'H',label:'H ハードウェア',color:'#6d4c41'},{key:'E',short:'E',label:'E 環境',color:'#43a047'},{key:'L2',short:'L他',label:'L 他者',color:'#1e88e5'},{key:'L1',short:'L当',label:'L 当事者',color:'#fb8c00'}];
+const GUIDE=[{no:1,label:'やめる（なくす）',step:'I'},{no:2,label:'できないようにする',step:'I'},{no:3,label:'わかりやすくする',step:'II'},{no:4,label:'やりやすくする',step:'II'},{no:5,label:'知覚能力を持たせる',step:'II'},{no:6,label:'認知・予測させる',step:'II'},{no:7,label:'安全を優先させる',step:'II'},{no:8,label:'できる能力を持たせる',step:'II'},{no:9,label:'自分で気づかせる',step:'III'},{no:10,label:'検出する',step:'III'},{no:11,label:'備える',step:'IV'}];
+const STEP4M={I:'STEP I 最小遭遇',II:'STEP II 最小確率',III:'STEP III 多重検出',IV:'STEP IV 最小被害'};
+const NODE_STYLE={problem:{fill:'#fde2e2',stroke:'#d32f2f',label:'最終事象'},action:{fill:'#ffffff',stroke:'#1976d2',label:'行動'},judge:{fill:'#e3f2fd',stroke:'#1976d2',label:'判断'},state:{fill:'#f3f4f6',stroke:'#6b7280',label:'状態・状況'},cushion:{fill:'#fff8c5',stroke:'#f2b705',label:'正しいと判断'}};
+
+let S=null;const ui={tab:'overview',tlView:'list',treeView:'outline',zoom:{tl:null,tree:null}};
+const byPerson=id=>S.persons.find(p=>p.id===id);
+const byF=id=>S.factors.find(f=>f.id===id);
+function personLabel(p){if(!p)return'';if(THING_ROLES.has(p.role))return p.name||(p.role+(p.mark||''));return p.role+(p.mark||'')+(p.note?`（${p.note}）`:'');}
+const problems=()=>S.events.filter(e=>e.problemNo).sort((a,b)=>a.problemNo-b.problemNo);
+const finalEvent=()=>S.events.find(e=>e.isFinal)||null;
+const children=id=>S.factors.filter(f=>f.parentId===id);
+const rootFactor=()=>S.factors.find(f=>!f.parentId)||null;
+function analysisFactors(){const r=rootFactor();if(!r)return[];const out=[];const walk=id=>{for(const k of children(id)){if(k.type!=='cushion')out.push(k);walk(k.id);}};walk(r.id);return out;}
+const guideInfo=no=>GUIDE.find(g=>g.no===+no)||null;
+function stepLabel(no){const g=guideInfo(no);return g?`${STEP4M[g.step]}（${g.step==='I'||g.step==='II'?'発生防止':'拡大防止'}）`:'';}
+const measureOrder=()=>[...(S.measures||[])];
+const adopted=()=>measureOrder().filter(m=>m.decision==='採用');
+const rowOf=e=>S.rows.find(r=>r.id===e.rowId);
+function pmChip(key){const p=PMSHELL.find(x=>x.key===key);return p?h('span',{class:'chip pm',style:`background:${p.color}`},p.label):null;}
+
+/* ========== SVG（図） ========== */
+const TREE={W:210,PAD:8,HEAD:16,VGAP:14,HGAP:60,MINH:46};
+let L=new Map();
+function layoutTree(fs){
+  L=new Map();const root=rootFactor();if(!root)return{w:0,h:0};
+  const font=`${fs}px ${FONT_FAMILY}`,LH=Math.round(fs*1.5);
+  const measure=n=>{const lines=wrapText(n.text||'',TREE.W-2*TREE.PAD,font);const badge=!!(n.actionable||n.otherActor);const hh=Math.max(TREE.MINH,TREE.HEAD+lines.length*LH+(badge?15:0)+2*TREE.PAD);const o={lines,h:hh,LH,badge};L.set(n.id,o);return o;};
+  const sub=n=>{const o=measure(n);const kids=children(n.id);if(!kids.length){o.sub=o.h;return o.sub;}let s=0;kids.forEach((k,i)=>{s+=sub(k);if(i)s+=TREE.VGAP;});o.sub=Math.max(o.h,s);return o.sub;};
+  let maxDepth=0;
+  const place=(n,x,y,d)=>{const o=L.get(n.id);maxDepth=Math.max(maxDepth,d);o.x=x;o.y=y+(o.sub-o.h)/2;const kids=children(n.id);const total=kids.reduce((a,k,i)=>a+L.get(k.id).sub+(i?TREE.VGAP:0),0);let cy=y+(o.sub-total)/2;kids.forEach(k=>{place(k,x+TREE.W+TREE.HGAP,cy,d+1);cy+=L.get(k.id).sub+TREE.VGAP;});};
+  sub(root);place(root,0,0,0);
+  return{w:(maxDepth+1)*TREE.W+maxDepth*TREE.HGAP,h:L.get(root.id).sub};
+}
+function buildTreeSVG(){
+  const fs=13;const lay=layoutTree(fs);if(!lay.w)return null;const m=12;
+  const svg=svgEl('svg',{xmlns:SVGNS,viewBox:`${-m} ${-m} ${lay.w+2*m} ${lay.h+2*m}`,'font-family':FONT_FAMILY});
+  svg.append(svgEl('rect',{x:-m,y:-m,width:lay.w+2*m,height:lay.h+2*m,fill:'#fff'}));
+  svg.append(svgEl('defs',{},svgEl('marker',{id:'ah',viewBox:'0 0 10 10',refX:'9',refY:'5',markerWidth:'7',markerHeight:'7',orient:'auto'},svgEl('path',{d:'M0,0 L10,5 L0,10 z',fill:'#444'}))));
+  for(const n of S.factors){const o=L.get(n.id);if(!o||!n.parentId)continue;const p=L.get(n.parentId);if(!p)continue;const x1=o.x,y1=o.y+o.h/2,x2=p.x+TREE.W,y2=p.y+p.h/2,mx=x1-TREE.HGAP/2;svg.append(svgEl('path',{d:`M${x1},${y1} H${mx} V${y2} H${x2+1}`,fill:'none',stroke:'#444','stroke-width':1.5,'marker-end':'url(#ah)'}));}
+  for(const n of S.factors){const o=L.get(n.id);if(!o)continue;const isRoot=!n.parentId;const st=isRoot?NODE_STYLE.problem:(NODE_STYLE[n.type]||NODE_STYLE.state);
+    const g=svgEl('g',{transform:`translate(${o.x},${o.y})`});
+    g.append(svgEl('rect',{width:TREE.W,height:o.h,rx:6,fill:st.fill,stroke:st.stroke,'stroke-width':isRoot?2:1.5}));
+    g.append(svgEl('text',{x:TREE.PAD,y:TREE.PAD+9,'font-size':10,fill:'#555'},isRoot?(S.mode==='QuickSAFER'?'分析対象行為':'最終事象'):st.label));
+    if(n.pmshell){const pm=PMSHELL.find(q=>q.key===n.pmshell);if(pm){const tw=pm.short.length*8+12;g.append(svgEl('rect',{x:TREE.W-TREE.PAD-tw,y:4,width:tw,height:14,rx:7,fill:pm.color}));g.append(svgEl('text',{x:TREE.W-TREE.PAD-tw/2,y:14.5,'font-size':10,fill:'#fff','text-anchor':'middle','font-weight':'bold'},pm.short));}}
+    const t=svgEl('text',{x:TREE.PAD,y:TREE.PAD+TREE.HEAD+fs-1,'font-size':fs,fill:'#111'});
+    o.lines.forEach((ln,i)=>t.append(svgEl('tspan',{x:TREE.PAD,dy:i?o.LH:0},ln||' ')));
+    g.append(t);
+    if(o.badge){let bx=TREE.PAD;const by=o.h-TREE.PAD-2;if(n.actionable){g.append(svgEl('text',{x:bx,y:by,'font-size':10,fill:'#2e7d32','font-weight':'bold'},'✓ 院内で対策できる'));bx+=108;}if(n.otherActor)g.append(svgEl('text',{x:bx,y:by,'font-size':10,fill:'#e65100','font-weight':'bold'},'⇢ 別の当事者の行動'));}
+    svg.append(g);}
+  svg.dataset.w=lay.w+2*m;svg.dataset.h=lay.h+2*m;return svg;
+}
+function buildTimelineSVG(){
+  const fs=12,font=`${fs}px ${FONT_FAMILY}`,LH=Math.round(fs*1.45);
+  const timeW=84,headH=32,cellPad=6,cardPad=6,cardGap=6;
+  const cols=S.persons.map(p=>({p,w:p.width||180}));
+  const rows=S.rows.map(r=>{let maxH=34;const cells={};for(const c of cols){const items=S.events.filter(e=>e.rowId===r.id&&e.personId===c.p.id).map(e=>{const lines=wrapText(e.text||'',c.w-2*cellPad-2*cardPad-4,font);const marks=[e.problemNo?`×(${e.problemNo})`:null,e.isFinal?'★':null,e.checked?'✓':null,e.flag||null].filter(Boolean).join(' ');const foot=[e.certainty!=='事実'?e.certainty:null,e.source!=='会議'?e.source:null].filter(Boolean).join('・');return{e,lines,marks,foot,hh:cardPad*2+(marks?15:0)+lines.length*LH+(foot?13:0)};});const hsum=items.reduce((a,i)=>a+i.hh,0)+(items.length?(items.length-1)*cardGap:0);cells[c.p.id]=items;maxH=Math.max(maxH,hsum+2*cellPad);}return{r,cells,h:maxH};});
+  const W=timeW+cols.reduce((a,c)=>a+c.w,0),H=headH+rows.reduce((a,r)=>a+r.h,0);
+  const svg=svgEl('svg',{xmlns:SVGNS,viewBox:`0 0 ${W} ${H}`,'font-family':FONT_FAMILY});
+  svg.append(svgEl('rect',{width:W,height:H,fill:'#fff'}),svgEl('rect',{width:W,height:headH,fill:'#f1f5f9'}));
+  svg.append(svgEl('text',{x:timeW/2,y:headH/2+4,'font-size':fs,'text-anchor':'middle','font-weight':'bold'},'時刻'));
+  let x=timeW;for(const c of cols){svg.append(svgEl('text',{x:x+c.w/2,y:headH/2+4,'font-size':fs,'text-anchor':'middle','font-weight':'bold'},personLabel(c.p)));x+=c.w;}
+  let y=headH;
+  for(const row of rows){
+    svg.append(svgEl('text',{x:6,y:y+16,'font-size':fs},row.r.time||''));
+    let cx=timeW;
+    for(const c of cols){let cy=y+cellPad;for(const it of row.cells[c.p.id]){const e=it.e,cw=c.w-2*cellPad;const g=svgEl('g',{transform:`translate(${cx+cellPad},${cy})`});
+      g.append(svgEl('rect',{width:cw,height:it.hh,rx:4,fill:e.source==='報告書'?'#fff3cd':'#fff8c5',stroke:e.problemNo?'#d32f2f':'#c9b45c','stroke-width':e.isFinal?3:1,'stroke-dasharray':e.certainty==='推測'?'4 3':e.certainty==='不明'?'1.5 2':null}));
+      g.append(svgEl('rect',{width:4,height:it.hh,rx:2,fill:e.problemNo?'#d32f2f':'#c9b45c'}));
+      let ty=cardPad;if(it.marks){g.append(svgEl('text',{x:cardPad+2,y:ty+10,'font-size':11,'font-weight':'bold',fill:'#c62828'},it.marks));ty+=15;}
+      const t=svgEl('text',{x:cardPad+2,y:ty+fs-1,'font-size':fs,fill:'#111'});it.lines.forEach((ln,i)=>t.append(svgEl('tspan',{x:cardPad+2,dy:i?LH:0},ln||' ')));g.append(t);
+      if(it.foot)g.append(svgEl('text',{x:cw-4,y:it.hh-4,'font-size':9,fill:'#6b7280','text-anchor':'end'},it.foot));
+      svg.append(g);cy+=it.hh+cardGap;}cx+=c.w;}
+    y+=row.h;}
+  const xs=[0,timeW];for(const c of cols)xs.push(xs[xs.length-1]+c.w);
+  for(const gx of xs)svg.append(svgEl('line',{x1:gx,y1:0,x2:gx,y2:H,stroke:'#999'}));
+  let gy=headH;svg.append(svgEl('line',{x1:0,y1:0,x2:W,y2:0,stroke:'#999'}),svgEl('line',{x1:0,y1:gy,x2:W,y2:gy,stroke:'#999'}));
+  for(const row of rows){gy+=row.h;svg.append(svgEl('line',{x1:0,y1:gy,x2:W,y2:gy,stroke:'#999'}));}
+  svg.dataset.w=W;svg.dataset.h=H;return svg;
+}
+function svgPane(kind,build){
+  const box=h('div',{class:'svgbox'});
+  const svg=build();
+  if(!svg)return h('div',{class:'empty'},'図がありません');
+  const W=+svg.dataset.w,H=+svg.dataset.h;
+  const avail=Math.max(260,(window.innerWidth||360)-42);
+  if(ui.zoom[kind]==null)ui.zoom[kind]=Math.min(1,avail/W);
+  const apply=()=>{const z=ui.zoom[kind];svg.setAttribute('width',Math.round(W*z));svg.setAttribute('height',Math.round(H*z));};
+  apply();box.append(svg);
+  const zb=(label,fn)=>btn(label,()=>{fn();apply();});
+  return h('div',{},
+    h('div',{class:'toolrow'},
+      zb('－',()=>{ui.zoom[kind]=Math.max(.2,ui.zoom[kind]/1.25);}),
+      zb('＋',()=>{ui.zoom[kind]=Math.min(3,ui.zoom[kind]*1.25);}),
+      zb('全体',()=>{ui.zoom[kind]=Math.min(1,avail/W);}),
+      zb('原寸',()=>{ui.zoom[kind]=1;}),
+      h('span',{class:'note sp'},'指でなぞって移動できます')),
+    box);
+}
+
+/* ========== 画面 ========== */
+const TABS_IM=[['overview','概要'],['timeline','① 時系列'],['problems','② 問題点'],['factors','③ 背後要因'],['measures','④⑤ 対策'],['plan','⑥⑦ 実施・評価'],['about','このアプリ']];
+const TABS_Q=[['overview','概要'],['timeline','出来事'],['pe','P-E情報'],['factors','背後要因'],['measures','対策'],['plan','実施・評価'],['about','このアプリ']];
+const tabs=()=>S.mode==='QuickSAFER'?TABS_Q:TABS_IM;
+function render(){
+  $('#title').textContent=`${S.caseNo||'事例'}　${S.mode}`;
+  const nav=$('#nav');nav.innerHTML='';
+  for(const[id,label]of tabs())nav.append(btn(label,()=>{ui.tab=id;render();},{class:ui.tab===id?'active':''}));
+  const main=$('#main');main.innerHTML='';
+  const w=h('div',{class:'wrap'});
+  ({overview:viewOverview,timeline:viewTimeline,problems:viewProblems,pe:viewPE,factors:viewFactors,measures:viewMeasures,plan:viewPlan,about:viewAbout})[ui.tab](w);
+  main.append(w);main.scrollTop=0;
+  $('#btnBig').classList.toggle('on',document.body.classList.contains('big'));
+}
+function viewOverview(w){
+  if(S.__sample)w.append(h('div',{class:'banner'},'これは練習用の架空事例です。実在の患者・職員とは関係ありません。'));
+  const kv=h('dl',{class:'kv'});
+  const add=(k,v)=>{if(!v)return;kv.append(h('dt',{},k),h('dd',{},v));};
+  add('事例No',S.caseNo);add('発生日',S.occurredDate);add('分析日',S.analysisDate);add('部署',S.department);
+  add('レベル',LEVELS[S.level]||S.level);add('種類',S.category);add('分析手法',S.mode);add('メンバー',S.members);
+  w.append(h('div',{class:'card'},kv));
+  if(S.summary)w.append(h('h2',{class:'sec'},'概要'),h('div',{class:'card',style:'white-space:pre-wrap;line-height:1.6'},S.summary));
+  const fin=finalEvent();
+  if(fin)w.append(h('h2',{class:'sec'},'最終事象（患者への影響が最大の問題点）'),h('div',{class:'card',style:'border-left:5px solid #d32f2f'},fin.text));
+  const facs=analysisFactors(),act=facs.filter(f=>f.actionable).length,ad=adopted().length;
+  w.append(h('h2',{class:'sec'},'分析の内容'),h('div',{class:'card'},
+    h('div',{class:'chips'},
+      h('span',{class:'chip'},`出来事 ${S.events.length}`),
+      h('span',{class:'chip red'},`問題点 ${problems().length}`),
+      h('span',{class:'chip'},`背後要因 ${facs.length}`),
+      h('span',{class:'chip ok'},`院内で対策できる ${act}`),
+      h('span',{class:'chip'},`対策案 ${(S.measures||[]).length}`),
+      h('span',{class:'chip ok'},`採用 ${ad}`))));
+}
+function viewTimeline(w){
+  w.append(h('div',{class:'toolrow'},
+    btn('一覧',()=>{ui.tlView='list';render();},{class:ui.tlView==='list'?'primary':''}),
+    btn('図（横長）',()=>{ui.tlView='svg';render();},{class:ui.tlView==='svg'?'primary':''}),
+    h('span',{class:'note sp'},ui.tlView==='list'?'時刻の順に並んでいます':'スマホでは横向きが見やすいです')));
+  if(ui.tlView==='svg'){w.append(svgPane('tl',buildTimelineSVG));return;}
+  if(!S.events.length){w.append(h('div',{class:'empty'},'出来事がありません'));return;}
+  for(const r of S.rows){
+    const evs=S.events.filter(e=>e.rowId===r.id);if(!evs.length)continue;
+    const g=h('div',{class:'tgroup'},h('div',{class:'thead'},r.time||'（時刻なし）'));
+    for(const e of evs){
+      const cls=['ev',e.problemNo?'prob':'',e.isFinal?'final':'',e.certainty==='推測'?'guess':''].filter(Boolean).join(' ');
+      g.append(h('div',{class:cls},
+        h('div',{class:'who'},
+          e.problemNo?h('span',{class:'mk'},`×(${e.problemNo})`):null,
+          e.isFinal?h('span',{class:'mk'},'★'):null,
+          e.checked?h('span',{style:'color:#2e7d32'},'✓'):null,
+          personLabel(byPerson(e.personId)),
+          e.certainty!=='事実'?h('span',{class:'chip'},e.certainty):null,
+          e.source!=='会議'?h('span',{class:'chip'},e.source):null,
+          e.flag?h('span',{class:'chip warn'},e.flag):null),
+        h('div',{class:'tx'},e.text)));
+    }
+    w.append(g);
+  }
+}
+function viewProblems(w){
+  const ps=problems();
+  if(!ps.length){w.append(h('div',{class:'empty'},'問題点（×）はありません'));return;}
+  w.append(h('div',{class:'note',style:'margin-bottom:8px'},'エラーの引き金や事象の悪化に関わった出来事です。★ は患者への影響が最大の問題点（最終事象）。'));
+  for(const e of ps)w.append(h('div',{class:'card'+(e.isFinal?' ':''),style:e.isFinal?'border-left:5px solid #d32f2f':''},
+    h('div',{class:'who',style:'color:#b71c1c;font-weight:700'},`×(${e.problemNo})`,e.isFinal?' ★ 最終事象':''),
+    h('div',{style:'margin:4px 0;line-height:1.5'},e.text),
+    h('div',{class:'note'},`${rowOf(e)?.time||''}　${personLabel(byPerson(e.personId))}`)));
+}
+function viewPE(w){
+  const q=S.quick||{};
+  w.append(h('h2',{class:'sec'},'① 分析対象行為'),h('div',{class:'card'},
+    h('div',{class:'note'},q.actor?personLabel(byPerson(q.actor)):''),h('div',{style:'line-height:1.5'},q.action||'（未設定）')));
+  const E=(q.pe||[]).filter(x=>x.side==='E'),P=(q.pe||[]).filter(x=>x.side==='P');
+  const col=(title,items,sub)=>{const c=h('div',{class:'card'},h('b',{},title),h('div',{class:'note',style:'margin-bottom:6px'},sub));
+    if(!items.length)c.append(h('div',{class:'note'},'（記入なし）'));
+    for(const it of items)c.append(h('div',{style:'margin:4px 0;line-height:1.5'},h('span',{class:'note'},(it.side==='E'?it.time:it.cat)?`［${it.side==='E'?it.time:it.cat}］`:''),' ',it.unseen?`（${it.text}）`:it.text));
+    return c;};
+  w.append(h('h2',{class:'sec'},'② P-E情報整理表（B = f(P, E)）'),
+    h('div',{class:'pe'},col('E（環境）',E,'当時、当事者の周りにあったもの。（ ）＝当事者が認識していなかったもの'),col('P（人間）',P,'経験・持っていた情報・持っていなかった情報・思い')));
+}
+function viewFactors(w){
+  const root=rootFactor();
+  if(!root){w.append(h('div',{class:'empty'},'背後要因が入力されていません'));return;}
+  w.append(h('div',{class:'toolrow'},
+    btn('箇条書き',()=>{ui.treeView='outline';render();},{class:ui.treeView==='outline'?'primary':''}),
+    btn('図',()=>{ui.treeView='svg';render();},{class:ui.treeView==='svg'?'primary':''}),
+    h('span',{class:'note sp'},'「なぜ正しいと判断したのか」を右へ広げます')));
+  if(ui.treeView==='svg'){w.append(svgPane('tree',buildTreeSVG));return;}
+  const nodeEl=n=>{
+    const isRoot=!n.parentId;const st=isRoot?NODE_STYLE.problem:(NODE_STYLE[n.type]||NODE_STYLE.state);
+    const el=h('div',{class:'node '+(isRoot?'root':n.type)},
+      h('div',{class:'lab'},isRoot?(S.mode==='QuickSAFER'?'分析対象行為':'最終事象'):st.label),
+      h('div',{class:'tx'},n.text));
+    const chips=h('div',{class:'chips'});
+    if(n.pmshell)chips.append(pmChip(n.pmshell));
+    if(n.actionable)chips.append(h('span',{class:'chip ok'},'✓ 院内で対策できる'));
+    if(n.otherActor)chips.append(h('span',{class:'chip warn'},'⇢ 別の当事者の行動'));
+    if(chips.children.length)el.append(chips);
+    return el;};
+  const build=(n,depth)=>{const box=h('div',{},nodeEl(n));const kids=children(n.id);if(kids.length){const sub=h('div',{class:'tr'});for(const k of kids)sub.append(build(k,depth+1));box.append(sub);}return box;};
+  w.append(build(root,0));
+}
+function viewMeasures(w){
+  const ms=measureOrder();
+  if(!ms.length){w.append(h('div',{class:'empty'},'対策案がありません'));return;}
+  w.append(h('div',{class:'note',style:'margin-bottom:8px'},'GUIDE の番号が小さいほど、人の注意に頼らない強い対策です。'));
+  for(const m of ms){
+    const g=guideInfo(m.guide);const ev=m.eval||{};
+    const card=h('div',{class:'card m '+(m.decision==='採用'?'adopt':m.decision==='不採用'?'reject':'')});
+    card.append(h('div',{class:'gd'},g?h('span',{class:'no'},g.no):null,h('b',{},g?g.label:'GUIDE 未分類'),m.decision?h('span',{class:'chip '+(m.decision==='採用'?'ok':m.decision==='不採用'?'':'warn')},m.decision):null));
+    card.append(h('div',{style:'line-height:1.5'},m.text));
+    if(g)card.append(h('div',{class:'note',style:'margin-top:3px'},stepLabel(m.guide)));
+    if(m.factorId&&byF(m.factorId))card.append(h('div',{class:'note',style:'margin-top:3px'},'対象要因：'+byF(m.factorId).text));
+    const r=[ev.effect&&`効果 ${ev.effect}`,ev.feas&&`実現性 ${ev.feas}`,ev.cost&&`コスト ${ev.cost}`,ev.side&&`副作用 ${ev.side}`].filter(Boolean);
+    if(r.length)card.append(h('div',{class:'chips'},...r.map(x=>h('span',{class:'chip'},x))));
+    if(m.note)card.append(h('div',{class:'note',style:'margin-top:4px'},m.note));
+    w.append(card);}
+}
+function viewPlan(w){
+  const ms=adopted();
+  if(!ms.length){w.append(h('div',{class:'empty'},'採用した対策がありません'));return;}
+  for(const m of ms){
+    const t=h('table',{class:'ev2'});
+    const row=(k,v)=>{if(!v)return;t.append(h('tr',{},h('th',{},k),h('td',{},v)));};
+    row('担当',m.owner);row('期限',m.due);row('方法',m.method);row('実施確認',m.done);row('状況',m.status);
+    row('評価日',m.reviewDate);row('定着度',m.fixation);row('効果',m.effectResult);row('新たな問題',m.newIssues);row('次の対応',m.next);
+    w.append(h('div',{class:'card'},h('b',{style:'line-height:1.5'},m.text),h('div',{style:'margin-top:6px'},t)));}
+}
+function viewAbout(w){
+  w.append(h('h2',{class:'sec'},'このアプリについて'),h('div',{class:'card about'},
+    h('p',{style:'margin:0 0 8px;line-height:1.6'},'ImSAFER 分析支援 v1.0（○○病院 作成）。ImSAFER（事故の構造に基づく事象分析手法）の手順1〜7を、パソコンで進めるために作った支援ツールです。この画面は、できあがった分析を見るための閲覧用（スマホ対応）です。'),
+    h('ul',{style:'margin:0;padding-left:1.2em'},
+      h('li',{},'① 時系列事象関連図：付箋を置いて出来事を整理。Excel の入力シートからの取り込み、時刻順の並べ替え、会議で1枚ずつ確認する「確認モード」'),
+      h('li',{},'② 問題点の抽出：× の番号付けと最終事象 ★'),
+      h('li',{},'③ 背後要因の探索：要因を足すと図が自動で並ぶ。行動の下に「〇〇が正しいと判断した」を自動で挟む。P-mSHELL と「院内で対策できる」の目印'),
+      h('li',{},'④〜⑦：GUIDE 11段階と 4STEP/M で対策を考え、採否・担当・期限・評価まで記録'),
+      h('li',{},'QuickSAFER（部署向けの短時間版）、印刷／PDF、Excel 書き出し'))));
+  w.append(h('div',{class:'banner'},'編集はパソコン版で行います。このビューアは閲覧専用です（データを書き換えません）。'));
+  w.append(h('div',{class:'card'},h('b',{},'問い合わせ'),h('div',{class:'note',style:'margin-top:4px'},'○○病院 医療安全管理室（○○）　電話 ○○　メール ○○')));
+}
+
+/* ========== 読み込み ========== */
+function openPicker(){
+  const back=h('div',{class:'modal-back',onclick:e=>{if(e.target===back)back.remove();}});
+  const box=h('div',{class:'modal'},h('h3',{},'事例を選ぶ'));
+  SAMPLES.forEach((s,i)=>box.append(btn(`練習事例 ${i+1}：${s.title}`,()=>{back.remove();load(JSON.parse(JSON.stringify(s.case)),true);},{})));
+  const inp=h('input',{type:'file',accept:'.json,application/json',style:'display:none',onchange:async()=>{const f=inp.files[0];if(!f)return;back.remove();try{await loadText(await f.text());}catch(e){alert(e.message);}}});
+  box.append(btn('保存したファイルを開く（.json）',()=>inp.click(),{class:'primary'}),inp,btn('閉じる',()=>back.remove(),{}));
+  back.append(box);document.body.append(back);
+}
+async function loadText(text){
+  let o;try{o=JSON.parse(text);}catch{throw new Error('ファイルの形式が正しくありません。');}
+  if(o.app!=='ImSAFER分析アプリ')throw new Error('このアプリで作成したファイルではありません。');
+  if(o.encrypted){
+    if(!(window.crypto&&crypto.subtle))throw new Error('この環境ではパスワード付きファイルを開けません。');
+    const pw=prompt('パスワードを入力してください');if(pw==null)return;
+    const b=s=>{const bin=atob(s);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;};
+    const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+    const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b(o.salt),iterations:o.iter||200000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
+    let pt;try{pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b(o.iv)},key,b(o.data));}catch{throw new Error('パスワードが違うか、ファイルが壊れています。');}
+    o=JSON.parse(new TextDecoder().decode(pt));}
+  load(o.case,false);
+}
+function load(c,isSample){
+  c.persons=c.persons||[];c.rows=c.rows||[];c.events=c.events||[];c.factors=c.factors||[];c.measures=c.measures||[];c.quick=c.quick||{pe:[]};
+  c.events.forEach(e=>{e.certainty=e.certainty||'事実';e.source=e.source||'会議';});
+  c.__sample=!!isSample;S=c;ui.tab='overview';ui.zoom={tl:null,tree:null};render();
+}
+$('#btnOpen').addEventListener('click',openPicker);
+$('#btnBig').addEventListener('click',()=>{document.body.classList.toggle('big');ui.zoom={tl:null,tree:null};render();});
+window.addEventListener('resize',()=>{if(ui.tlView==='svg'||ui.treeView==='svg'){ui.zoom={tl:null,tree:null};render();}});
+if(SAMPLES.length)load(JSON.parse(JSON.stringify(SAMPLES[0].case)),true);
+else{S={caseNo:'',mode:'ImSAFER',persons:[],rows:[],events:[],factors:[],measures:[],quick:{pe:[]}};render();}
+</script>
+</body>
+</html>
